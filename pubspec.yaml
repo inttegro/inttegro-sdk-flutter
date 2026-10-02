@@ -1,9 +1,15 @@
 name: inttegro_flutter
-description: Inttegro SDK for Flutter.
+description: Native Inttegro payment sheet for GHS checkout and Ghana Mobile Money.
 version: 0.3.0
 homepage: https://flutter.inttegro.dev/
 repository: https://github.com/inttegro/inttegro-sdk-flutter
 issue_tracker: https://github.com/inttegro/inttegro-sdk-flutter/issues
+topics:
+  - payments
+  - checkout
+  - mobile-money
+  - ghana
+  - fintech
 
 environment:
   sdk: ">=3.12.0 <4.0.0"
