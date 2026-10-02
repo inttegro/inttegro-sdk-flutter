@@ -3,11 +3,12 @@
 [API reference](https://flutter.inttegro.dev/v0.3.0/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
-Preview native Inttegro Checkout through its typed Flutter payment-sheet
-facade. This is an implementation spike and is not ready to publish or use
-with live payments.
-The current collection surface supports mobile money; card, Apple Pay, and
-Google Pay are not exposed.
+Present Inttegro Checkout through its typed Flutter payment-sheet facade. The
+SDK is published for production Flutter applications and delegates to the
+native Inttegro payment sheets on iOS and Android.
+
+The current `0.3.x` payment sheet exposes mobile money. Card, Apple Pay, and
+Google Pay are not exposed by this release.
 
 ```dart
 // Your backend must create and finalize the Order before this handoff.
