@@ -3,9 +3,9 @@
 [API reference](https://flutter.inttegro.dev/v0.3.0/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
-Preview a native GHS checkout and Ghana Mobile Money payment sheet through
-Inttegro's typed Flutter facade. This is an implementation spike and is not
-ready to publish or use with live payments.
+Preview native Inttegro Checkout through its typed Flutter payment-sheet
+facade. This is an implementation spike and is not ready to publish or use
+with live payments.
 The current collection surface supports mobile money; card, Apple Pay, and
 Google Pay are not exposed.
 
