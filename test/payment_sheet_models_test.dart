@@ -13,6 +13,28 @@ void main() {
       expect(value['returnURL'], 'merchant-app://inttegro-return');
     });
 
+    test('serializes a customer-selected amount Purchase Intent', () {
+      final value = const PaymentSheetConfiguration(
+        purchaseIntentId: '  sale_test  ',
+      ).toJson();
+
+      expect(value, {'purchaseIntentId': 'sale_test'});
+    });
+
+    test('requires exactly one checkout reference', () {
+      expect(
+        () => const PaymentSheetConfiguration().toJson(),
+        throwsArgumentError,
+      );
+      expect(
+        () => const PaymentSheetConfiguration(
+          orderId: 'or_test',
+          purchaseIntentId: 'sale_test',
+        ).toJson(),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects invalid appearance values', () {
       expect(
         () => const PaymentSheetConfiguration(
@@ -68,11 +90,18 @@ void main() {
   test('decodes the shared result union', () {
     final result = PaymentSheetResult.fromJson({
       'status': 'failed',
-      'error': {'code': 'declined', 'message': 'Payment declined'},
+      'error': {
+        'code': 'declined',
+        'message': 'Payment declined',
+        'requestId': 'req_test',
+        'retryAfterSeconds': 30,
+      },
     });
 
     expect(result, isA<PaymentSheetFailed>());
     expect((result as PaymentSheetFailed).code, 'declined');
+    expect(result.requestId, 'req_test');
+    expect(result.retryAfterSeconds, 30);
   });
 
   test('decodes privacy-safe telemetry events', () {
@@ -81,6 +110,7 @@ void main() {
       'sequence': 1,
       'name': 'inttegro.checkout.load.started',
       'timestamp': '2026-09-04T12:00:00.000Z',
+      'retryAfterSeconds': 30,
     });
 
     expect(event.sequence, 1);
@@ -88,6 +118,7 @@ void main() {
       event.name,
       PaymentSheetTelemetryEventName.checkoutLoadStarted,
     );
+    expect(event.retryAfterSeconds, 30);
     final lifecycleEvent = PaymentSheetEvent(
       flowId: '550e8400-e29b-41d4-a716-446655440000',
       sequence: 1,

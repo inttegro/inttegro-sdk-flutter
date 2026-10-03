@@ -38,10 +38,16 @@ jobs:
           cache: true
 
       - name: Build API documentation
+        shell: bash
         run: |
           flutter pub get
-          rm -f dartdoc_options.yaml
-          dart doc --output=build/api-docs
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          dart doc \
+            --output=build/api-docs \
+            --link-to-source-root . \
+            --link-to-source-revision "$SOURCE_SHA" \
+            --link-to-source-uri-template \
+            "https://github.com/${GITHUB_REPOSITORY}/blob/%r%/%f%#L%l%"
 
       - name: Publish versioned documentation
         shell: bash

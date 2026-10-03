@@ -1,0 +1,17 @@
+dartdoc:
+  categories:
+    get-started:
+      displayName: Get started
+      markdown: doc/get-started.md
+    lifecycle:
+      displayName: Payment lifecycle
+      markdown: doc/payment-lifecycle.md
+    observability:
+      displayName: Observability
+      markdown: doc/observability.md
+  categoryOrder:
+    - get-started
+    - lifecycle
+    - observability
+  errors:
+    - unresolved-doc-reference

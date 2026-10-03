@@ -1,5 +1,5 @@
 group = "com.inttegro.flutter"
-version = "0.3.0"
+version = "0.4.0"
 
 buildscript {
     repositories {
@@ -36,5 +36,5 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension> {
 }
 
 dependencies {
-    add("implementation", "com.inttegro:inttegro-android:0.2.0")
+    add("implementation", "com.inttegro:inttegro-android:0.3.0")
 }

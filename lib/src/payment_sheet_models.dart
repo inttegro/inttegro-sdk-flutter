@@ -1,5 +1,9 @@
-/// Optional visual overrides applied to the native payment sheet.
+/// Restrained visual overrides applied to the native payment sheet.
+///
+/// Omit values to inherit platform and application defaults. Inttegro retains
+/// native controls, layout, accessibility behavior, and payment-state semantics.
 final class PaymentSheetAppearance {
+  /// Creates optional native appearance overrides.
   const PaymentSheetAppearance({
     this.primaryColor,
     this.backgroundColor,
@@ -7,11 +11,16 @@ final class PaymentSheetAppearance {
     this.cornerRadius,
   });
 
+  /// Primary action color as `#RRGGBB` or `#RRGGBBAA`.
   final String? primaryColor;
+  /// Sheet surface color as `#RRGGBB` or `#RRGGBBAA`.
   final String? backgroundColor;
+  /// Primary foreground color as `#RRGGBB` or `#RRGGBBAA`.
   final String? textColor;
+  /// Preferred sheet corner radius from 0 through 40 logical pixels.
   final double? cornerRadius;
 
+  /// Validates and serializes appearance for the native bridge.
   Map<String, Object> toJson() {
     _validateColor('primaryColor', primaryColor);
     _validateColor('backgroundColor', backgroundColor);
@@ -41,18 +50,26 @@ final class PaymentSheetAppearance {
   }
 }
 
-/// Optional W3C trace context for application and SDK activity.
+/// Host-owned diagnostics and optional W3C trace context.
+///
+/// Inttegro installs no exporter. Disabling telemetry prevents both native
+/// event emission and trace-header propagation for the presentation.
 final class PaymentSheetTelemetry {
+  /// Creates telemetry and distributed-tracing options.
   const PaymentSheetTelemetry({
     this.enabled = true,
     this.traceparent,
     this.tracestate,
   });
 
+  /// Whether native events and trace propagation are enabled.
   final bool enabled;
+  /// Valid W3C `traceparent` supplied by the host application.
   final String? traceparent;
+  /// Optional W3C `tracestate`, limited to 512 characters and no newlines.
   final String? tracestate;
 
+  /// Validates and serializes telemetry options for the native bridge.
   Map<String, Object> toJson() {
     final parent = traceparent;
     if (parent != null &&
@@ -84,7 +101,11 @@ final class PaymentSheetTelemetry {
 }
 
 /// Optional content and actions exposed by the native payment sheet.
+///
+/// These options affect presentation only. They cannot change the Order,
+/// amount, currency, shipping address, or immutable customer relationship.
 final class PaymentSheetFeatures {
+  /// Creates optional content and post-payment actions.
   const PaymentSheetFeatures({
     this.showLineItems = false,
     this.showInvoiceDownload = false,
@@ -92,7 +113,8 @@ final class PaymentSheetFeatures {
     this.allowPaymentMethodChange = true,
   });
 
-  /// Shows the Order's line items before payment. Defaults to `false`.
+  /// Offers a collapsed, expandable Order summary. Opening it expands the
+  /// native sheet before revealing Checkout-provided items. Defaults to `false`.
   final bool showLineItems;
 
   /// Offers the invoice after payment succeeds. Defaults to `false`.
@@ -104,6 +126,7 @@ final class PaymentSheetFeatures {
   /// Lets the payer replace an attached payment method. Defaults to `true`.
   final bool allowPaymentMethodChange;
 
+  /// Serializes the presentation flags for the versioned native bridge.
   Map<String, Object> toJson() => {
         if (showLineItems) 'showLineItems': true,
         if (showInvoiceDownload) 'showInvoiceDownload': true,
@@ -112,30 +135,45 @@ final class PaymentSheetFeatures {
       };
 }
 
-/// Configuration stored for the next payment-sheet presentation.
+/// Configuration stored for the next native payment-sheet presentation.
+///
+/// [orderId] is the public identifier returned by a merchant backend after it
+/// creates and finalizes an Order. Never put a merchant API key in Flutter.
 final class PaymentSheetConfiguration {
+  /// Creates client-owned Checkout and presentation configuration.
   const PaymentSheetConfiguration({
-    required this.orderId,
+    this.orderId,
+    this.purchaseIntentId,
     this.returnUrl,
     this.appearance = const PaymentSheetAppearance(),
     this.telemetry = const PaymentSheetTelemetry(),
     this.features = const PaymentSheetFeatures(),
   });
 
-  final String orderId;
+  /// Public ID of an Order created and finalized by the backend.
+  final String? orderId;
+  /// Public Purchase Intent whose amount the payer will choose.
+  final String? purchaseIntentId;
+  /// Absolute application URI used after an external provider handoff.
   final Uri? returnUrl;
+  /// Restrained native appearance overrides.
   final PaymentSheetAppearance appearance;
+  /// Host-owned diagnostics and trace-context options.
   final PaymentSheetTelemetry telemetry;
-  /// Optional content and actions exposed by the native payment sheet.
+  /// Optional content and post-payment actions.
   final PaymentSheetFeatures features;
 
+  /// Validates and serializes configuration for the native bridge.
+  ///
+  /// Throws [ArgumentError] before presentation when a client-owned value is
+  /// malformed. It does not retrieve Checkout or initiate payment.
   Map<String, Object> toJson() {
-    final normalizedOrderId = orderId.trim();
-    if (normalizedOrderId.isEmpty) {
-      throw ArgumentError.value(
-        orderId,
-        'orderId',
-        'must not be empty',
+    final normalizedOrderId = orderId?.trim();
+    final normalizedPurchaseIntentId = purchaseIntentId?.trim();
+    if ((normalizedOrderId?.isNotEmpty == true) ==
+        (normalizedPurchaseIntentId?.isNotEmpty == true)) {
+      throw ArgumentError(
+        'Provide exactly one of orderId or purchaseIntentId',
       );
     }
     if (returnUrl case final value? when !value.isAbsolute) {
@@ -146,7 +184,9 @@ final class PaymentSheetConfiguration {
     final telemetryJson = telemetry.toJson();
     final featuresJson = features.toJson();
     return {
-      'orderId': normalizedOrderId,
+      if (normalizedOrderId?.isNotEmpty == true) 'orderId': normalizedOrderId!,
+      if (normalizedPurchaseIntentId?.isNotEmpty == true)
+        'purchaseIntentId': normalizedPurchaseIntentId!,
       if (returnUrl case final value?) 'returnURL': value.toString(),
       if (appearanceJson.isNotEmpty) 'appearance': appearanceJson,
       if (telemetryJson.isNotEmpty) 'telemetry': telemetryJson,
@@ -157,22 +197,39 @@ final class PaymentSheetConfiguration {
 
 /// Stable wire names emitted by the native SDK diagnostic stream.
 enum PaymentSheetTelemetryEventName {
+  /// The native sheet became visible.
   sheetPresented('inttegro.payment_sheet.presented'),
+  /// Checkout retrieval began.
   checkoutLoadStarted('inttegro.checkout.load.started'),
+  /// Checkout retrieval produced a valid client-safe session.
   checkoutLoadSucceeded('inttegro.checkout.load.succeeded'),
+  /// Checkout retrieval failed.
   checkoutLoadFailed('inttegro.checkout.load.failed'),
+  /// A payment mutation began.
   paymentAttemptStarted('inttegro.payment.attempt.started'),
+  /// A recoverable payment attempt failed.
   paymentAttemptFailed('inttegro.payment.attempt.failed'),
+  /// Checkout requires a confirmation code.
   confirmationRequired('inttegro.payment.confirmation.required'),
+  /// Checkout is waiting for provider or device authorization.
   authorizationRequired('inttegro.payment.authorization.required'),
+  /// The SDK is polling Checkout for authoritative state.
   statusPolling('inttegro.payment.status.polling'),
+  /// The sheet reached its Checkout-confirmed success state.
   sheetCompleted('inttegro.payment_sheet.completed'),
+  /// The payer dismissed the sheet.
   sheetCanceled('inttegro.payment_sheet.canceled'),
+  /// A terminal SDK failure closed the flow.
   sheetFailed('inttegro.payment_sheet.failed'),
+  /// The native Checkout transport prepared a request.
   requestPrepared('inttegro.request.prepared'),
+  /// An HTTP attempt began, including a safe retry.
   httpAttemptStarted('inttegro.http.attempt.started'),
+  /// A Checkout response arrived.
   responseReceived('inttegro.response.received'),
+  /// A Checkout response passed structural decoding.
   responseDecoded('inttegro.response.decoded'),
+  /// A Checkout transport or decoding operation failed.
   requestFailed('inttegro.request.failed');
 
   const PaymentSheetTelemetryEventName(this.wireValue);
@@ -180,6 +237,7 @@ enum PaymentSheetTelemetryEventName {
   /// The exact name emitted across the platform channel.
   final String wireValue;
 
+  /// Resolves a native wire value, or returns `null` when it is unknown.
   static PaymentSheetTelemetryEventName? fromWireValue(String value) {
     for (final name in values) {
       if (name.wireValue == value) return name;
@@ -190,9 +248,15 @@ enum PaymentSheetTelemetryEventName {
 
 /// Checkout operations that may appear in diagnostic events.
 enum PaymentSheetTelemetryOperation {
+  /// Retrieve the client-safe Checkout projection.
   checkoutLookup('checkout.lookup'),
+  /// Finalize a customer-selected amount into an Order.
+  checkoutSelectAmount('checkout.select_amount'),
+  /// Start or retry payment.
   checkoutPay('checkout.pay'),
+  /// Request a replacement confirmation code.
   checkoutRequestConfirmation('checkout.request_confirmation'),
+  /// Submit a confirmation token.
   checkoutConfirmPayment('checkout.confirm_payment');
 
   const PaymentSheetTelemetryOperation(this.wireValue);
@@ -200,6 +264,7 @@ enum PaymentSheetTelemetryOperation {
   /// The exact operation name emitted across the platform channel.
   final String wireValue;
 
+  /// Resolves a native operation value, or returns `null` when unknown.
   static PaymentSheetTelemetryOperation? fromWireValue(String value) {
     for (final operation in values) {
       if (operation.wireValue == value) return operation;
@@ -216,11 +281,17 @@ const _paymentSheetTelemetryEventFields = {
   'operation',
   'httpStatusCode',
   'requestId',
+  'retryAfterSeconds',
   'errorType',
 };
 
 /// Privacy-safe diagnostic metadata from one payment-sheet presentation.
+///
+/// Events exclude Order and Payment IDs, payer data, payment-method details,
+/// addresses, bodies, redirect URLs, and raw error messages. Treat [flowId] and
+/// [requestId] as correlation values rather than metric dimensions.
 final class PaymentSheetTelemetryEvent {
+  /// Creates a validated in-memory diagnostic event.
   const PaymentSheetTelemetryEvent({
     required this.flowId,
     required this.sequence,
@@ -229,9 +300,14 @@ final class PaymentSheetTelemetryEvent {
     this.operation,
     this.httpStatusCode,
     this.requestId,
+    this.retryAfterSeconds,
     this.errorType,
   });
 
+  /// Decodes the strict, versioned payload emitted by the native SDK.
+  ///
+  /// Throws [FormatException] for unknown names, unexpected fields, malformed
+  /// identifiers, invalid status codes, or unbounded values.
   factory PaymentSheetTelemetryEvent.fromJson(Map<Object?, Object?> value) {
     final flowId = value['flowId'];
     final sequence = value['sequence'];
@@ -240,6 +316,7 @@ final class PaymentSheetTelemetryEvent {
     final rawOperation = value['operation'];
     final httpStatusCode = value['httpStatusCode'];
     final requestId = value['requestId'];
+    final retryAfterSeconds = value['retryAfterSeconds'];
     final errorType = value['errorType'];
     if (value.keys.any(
           (key) =>
@@ -264,6 +341,10 @@ final class PaymentSheetTelemetryEvent {
             (requestId is! String ||
                 requestId.isEmpty ||
                 requestId.length > 255)) ||
+        (retryAfterSeconds != null &&
+            (retryAfterSeconds is! int ||
+                retryAfterSeconds < 0 ||
+                retryAfterSeconds > 300)) ||
         (errorType != null &&
             (errorType is! String || errorType.isEmpty || errorType.length > 64))) {
       throw const FormatException(
@@ -287,33 +368,56 @@ final class PaymentSheetTelemetryEvent {
       operation: operation,
       httpStatusCode: httpStatusCode as int?,
       requestId: requestId as String?,
+      retryAfterSeconds: retryAfterSeconds as int?,
       errorType: errorType as String?,
     );
   }
 
+  /// Random identifier shared by events from one presentation.
   final String flowId;
+  /// Monotonically increasing event order within the flow.
   final int sequence;
+  /// Stable lifecycle or transport event name.
   final PaymentSheetTelemetryEventName name;
+  /// Time at which the native SDK emitted the event.
   final DateTime timestamp;
+  /// Fixed Checkout operation for a network event.
   final PaymentSheetTelemetryOperation? operation;
+  /// HTTP status code when a response was received.
   final int? httpStatusCode;
+  /// Bounded Inttegro request identifier for support correlation.
   final String? requestId;
+  /// Bounded server-directed delay before retrying the operation.
+  final int? retryAfterSeconds;
+  /// Privacy-safe error category rather than a raw message.
   final String? errorType;
 }
 
 /// Application-facing payment-sheet lifecycle transitions.
 enum PaymentSheetEventType {
+  /// The native sheet became visible.
   presented,
+  /// Checkout retrieval began.
   checkoutLoadStarted,
+  /// Checkout retrieval succeeded.
   checkoutLoadSucceeded,
+  /// Checkout retrieval failed and may be retried.
   checkoutLoadFailed,
+  /// A payment attempt began.
   paymentAttemptStarted,
+  /// A recoverable payment attempt failed.
   paymentAttemptFailed,
+  /// The payer must enter a confirmation code.
   confirmationRequired,
+  /// Provider or device authorization is outstanding.
   authorizationRequired,
+  /// Checkout is being polled for authoritative state.
   paymentStatusPolling,
+  /// The native flow reached its success state.
   completed,
+  /// The payer dismissed the sheet.
   canceled,
+  /// A terminal SDK failure stopped the flow.
   failed,
 }
 
@@ -323,6 +427,7 @@ enum PaymentSheetEventType {
 /// Terminal application behavior belongs in the [PaymentSheetResult] returned
 /// by `presentPaymentSheet`.
 final class PaymentSheetEvent {
+  /// Creates one application-facing lifecycle event.
   const PaymentSheetEvent({
     required this.flowId,
     required this.sequence,
@@ -331,10 +436,15 @@ final class PaymentSheetEvent {
     this.errorType,
   });
 
+  /// Random identifier shared by events from one presentation.
   final String flowId;
+  /// Monotonically increasing event order within the flow.
   final int sequence;
+  /// Application-facing lifecycle transition.
   final PaymentSheetEventType type;
+  /// Time at which the native SDK emitted the event.
   final DateTime timestamp;
+  /// Privacy-safe failure category when the transition represents a failure.
   final String? errorType;
 
   /// Whether this event represents the end of the sheet presentation.
@@ -356,9 +466,17 @@ final class PaymentSheetEvent {
 }
 
 /// Terminal outcome of one native payment-sheet presentation.
+///
+/// Recoverable collection failures do not create a result; the native sheet
+/// remains open. A completed result still requires backend verification of the
+/// owner-scoped Order before fulfillment.
 sealed class PaymentSheetResult {
+  /// Creates a terminal result subtype returned by the native bridge.
   const PaymentSheetResult();
 
+  /// Decodes the strict terminal payload returned by the native bridge.
+  ///
+  /// Throws [FormatException] for unknown states or malformed result fields.
   factory PaymentSheetResult.fromJson(Map<Object?, Object?> value) {
     switch (value['status']) {
       case 'completed':
@@ -377,15 +495,27 @@ sealed class PaymentSheetResult {
         final code = error['code'];
         final message = error['message'];
         final declineCode = error['declineCode'];
+        final requestId = error['requestId'];
+        final retryAfterSeconds = error['retryAfterSeconds'];
         if (code is! String ||
             message is! String ||
-            (declineCode != null && declineCode is! String)) {
+            (declineCode != null && declineCode is! String) ||
+            (requestId != null &&
+                (requestId is! String ||
+                    requestId.isEmpty ||
+                    requestId.length > 255)) ||
+            (retryAfterSeconds != null &&
+                (retryAfterSeconds is! int ||
+                    retryAfterSeconds < 0 ||
+                    retryAfterSeconds > 300))) {
           throw const FormatException('Invalid error from native payment sheet');
         }
         return PaymentSheetFailed(
           code: code,
           message: message,
           declineCode: declineCode as String?,
+          requestId: requestId as String?,
+          retryAfterSeconds: retryAfterSeconds as int?,
         );
       default:
         throw const FormatException('Unknown result from native payment sheet');
@@ -398,25 +528,38 @@ sealed class PaymentSheetResult {
 /// The merchant backend must still verify the authoritative Order state before
 /// fulfillment.
 final class PaymentSheetCompleted extends PaymentSheetResult {
+  /// Creates a completed client result.
   const PaymentSheetCompleted({this.paymentId});
 
+  /// Payment identifier returned by Checkout, when available.
   final String? paymentId;
 }
 
 /// The customer dismissed the payment sheet before completion.
 final class PaymentSheetCanceled extends PaymentSheetResult {
+  /// Creates the customer-canceled result.
   const PaymentSheetCanceled();
 }
 
 /// The payment sheet stopped because of a terminal error.
 final class PaymentSheetFailed extends PaymentSheetResult {
+  /// Creates a terminal failure returned by the native bridge.
   const PaymentSheetFailed({
     required this.code,
     required this.message,
     this.declineCode,
+    this.requestId,
+    this.retryAfterSeconds,
   });
 
+  /// Stable machine-readable category suitable for application branching.
   final String code;
+  /// Payer-safe or developer-facing description.
   final String message;
+  /// Optional processor decline classification.
   final String? declineCode;
+  /// Inttegro request identifier for support correlation.
+  final String? requestId;
+  /// Server-directed delay before retrying the operation.
+  final int? retryAfterSeconds;
 }

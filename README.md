@@ -1,16 +1,16 @@
 # Inttegro Flutter
 
-[API reference](https://flutter.inttegro.dev/v0.3.0/) ·
+[API reference](https://flutter.inttegro.dev/v0.4.0/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
-Present Inttegro Checkout through its typed Flutter payment-sheet facade. The
-SDK is published for production Flutter applications and delegates to the
-native Inttegro payment sheets on iOS and Android.
-
-The current `0.3.x` payment sheet exposes mobile money. Card, Apple Pay, and
-Google Pay are not exposed by this release.
+Typed Flutter facade for Inttegro's native payment sheet. The current collection
+surface supports mobile money; card, Apple Pay, and Google Pay are not exposed
+in this version.
 
 ```dart
+import 'package:inttegro_flutter/events.dart';
+import 'package:inttegro_flutter/payment_sheet.dart';
+
 // Your backend must create and finalize the Order before this handoff.
 final checkout = await merchantBackend.createCheckoutOrder(cart);
 final orderId = checkout.orderId;
@@ -66,8 +66,36 @@ try {
 }
 ```
 
+For a Buy link backed by a `customer_selected_amount` price, initialize with
+the client-safe Purchase Intent instead of a finalized Order:
+
+```dart
+await Inttegro.instance.initializePaymentSheet(
+  PaymentSheetConfiguration(purchaseIntentId: buyLink.purchaseIntentId),
+);
+```
+
+The native sheet retrieves the merchant's currency, range, and suggested
+amounts, lets the payer choose any valid amount, and then creates the finalized
+Order idempotently before continuing through the same payment flow. Supply
+exactly one of `orderId` or `purchaseIntentId`.
+
+The umbrella `inttegro_flutter.dart` library remains supported. Applications
+that prefer responsibility-based API pages can use focused libraries:
+
+```dart
+import 'package:inttegro_flutter/payment_sheet.dart';
+import 'package:inttegro_flutter/events.dart';
+import 'package:inttegro_flutter/telemetry.dart';
+```
+
+These are libraries in one pub package, not separate native implementations.
+They stay on one version and delegate to the same iOS or Android state machine.
+
 All feature flags are optional. Line items and post-payment downloads are off
 by default; changing an attached payment method remains allowed by default.
+When line items are enabled, the Order summary still starts collapsed. Opening
+it expands the native sheet as the items are revealed.
 Invoice and receipt actions appear only when Checkout returns the corresponding
 document link after payment succeeds. Disabling payment-method changes does not
 block collection when the Order has no attached method.
@@ -95,11 +123,16 @@ URLs, or raw error messages. `flowId` and `requestId` should not be used as
 metric labels. Subscribe before presenting the sheet so the first event is not
 missed.
 
+The native transport retries an idempotent Checkout mutation once when the
+server supplies a valid `Retry-After` delay. If the operation still fails,
+`PaymentSheetFailed` may include `requestId` and `retryAfterSeconds` for support
+correlation and deliberate retry UX.
+
 The package registers an Android and iOS plugin for each Flutter engine. The
 plugins keep presentation state isolated per engine and delegate to the same
 native `Inttegro` artifacts used by the React Native SDK. CocoaPods links the
 iOS artifact through `inttegro_flutter.podspec`, while Gradle resolves
-`com.inttegro:inttegro-android:0.2.0`.
+`com.inttegro:inttegro-android:0.3.0`.
 
 ## Requirements
 
