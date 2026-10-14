@@ -35,10 +35,10 @@ final class PaymentSheetAppearance {
     }
 
     return {
-      if (primaryColor case final value?) 'primaryColor': value,
-      if (backgroundColor case final value?) 'backgroundColor': value,
-      if (textColor case final value?) 'textColor': value,
-      if (radius != null) 'cornerRadius': radius,
+      'primaryColor': ?primaryColor,
+      'backgroundColor': ?backgroundColor,
+      'textColor': ?textColor,
+      'cornerRadius': ?radius,
     };
   }
 
@@ -94,8 +94,8 @@ final class PaymentSheetTelemetry {
     }
     return {
       if (!enabled) 'enabled': false,
-      if (parent != null) 'traceparent': parent,
-      if (state != null) 'tracestate': state,
+      'traceparent': ?parent,
+      'tracestate': ?state,
     };
   }
 }
