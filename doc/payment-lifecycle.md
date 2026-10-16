@@ -13,8 +13,11 @@ final subscription = Inttegro.instance.paymentSheetEvents.listen((event) {
     case PaymentSheetEventType.presented:
       checkoutAnalytics.started();
     case PaymentSheetEventType.paymentAttemptFailed:
-      checkoutAnalytics.retryAvailable(category: event.errorType);
-    case PaymentSheetEventType.authorizationRequired:
+      checkoutAnalytics.retryAvailable(
+        orderId: event.order!.id,
+        category: event.failure!.code,
+      );
+    case PaymentSheetEventType.paymentActionRequired:
       showReturnToPaymentHint();
     default:
       break;
@@ -34,15 +37,15 @@ analytics work.
 
 ## Separate recoverable and terminal state
 
-Checkout retrieval and payment-attempt failures can be recoverable. The native
-sheet displays safe guidance and gives the payer another attempt without
-resolving `presentPaymentSheet`.
+Payment-attempt failures can be recoverable. The native sheet displays safe
+guidance and gives the payer another attempt without resolving
+`presentPaymentSheet`.
 
 Confirmation-code entry, provider redirects, device authorization, and Checkout
 status polling are also native intermediate states. Terminal results are limited
-to completion, cancellation, and an unrecoverable SDK failure.
-`PaymentSheetFailed` may include `requestId` for support correlation and
-`retryAfterSeconds` when the server directs the next retry window.
+to completion, cancellation, and an unrecoverable SDK failure. After Checkout
+has prepared an Order, each event carries the same client-safe Order shape used
+by the web SDK. Request correlation and retry timing remain telemetry-only.
 
 ## Reconcile on the backend
 

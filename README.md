@@ -1,6 +1,6 @@
 # Inttegro Flutter
 
-[API reference](https://flutter.inttegro.dev/v0.4.0/) ·
+[API reference](https://flutter.inttegro.dev/v0.5.0/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
 Typed Flutter facade for Inttegro's native payment sheet. The current collection
@@ -24,7 +24,15 @@ final lifecycleSubscription = Inttegro.instance.paymentSheetEvents.listen(
         onPaymentAttemptStarted();
       case PaymentSheetEventType.paymentAttemptFailed:
         // Recoverable: the customer can retry without leaving the native sheet.
-        onPaymentAttemptFailed(category: event.errorType);
+        onPaymentAttemptFailed(
+          order: event.order!,
+          failure: event.failure!,
+        );
+      case PaymentSheetEventType.paymentActionRequired:
+        onPaymentActionRequired(
+          order: event.order!,
+          action: event.action!,
+        );
       default:
         break;
     }
@@ -49,16 +57,16 @@ try {
   final result = await Inttegro.instance.presentPaymentSheet();
 
   switch (result) {
-    case PaymentSheetCompleted(:final paymentId):
-      onPaymentCompleted(paymentId: paymentId);
-      await merchantBackend.verifyOrderPayment(orderId);
-    case PaymentSheetCanceled():
+    case PaymentSheetCompleted(:final order):
+      onPaymentCompleted(order: order);
+      await merchantBackend.verifyOrderPayment(order.id);
+    case PaymentSheetCanceled(:final order):
       onPaymentCanceled();
-    case PaymentSheetFailed(:final code, :final message, :final declineCode):
+      if (order != null) preserveCheckoutContext(order.id);
+    case PaymentSheetFailed(:final failure):
       onPaymentSheetFailed(
-        code: code,
-        message: message,
-        declineCode: declineCode,
+        code: failure.code,
+        message: failure.message,
       );
   }
 } finally {
@@ -124,15 +132,15 @@ metric labels. Subscribe before presenting the sheet so the first event is not
 missed.
 
 The native transport retries an idempotent Checkout mutation once when the
-server supplies a valid `Retry-After` delay. If the operation still fails,
-`PaymentSheetFailed` may include `requestId` and `retryAfterSeconds` for support
-correlation and deliberate retry UX.
+server supplies a valid `Retry-After` delay. Transport-only request identifiers
+and retry timing remain in `paymentSheetTelemetryEvents`; public lifecycle
+failures carry only a stable code, safe message, and recoverability flag.
 
 The package registers an Android and iOS plugin for each Flutter engine. The
 plugins keep presentation state isolated per engine and delegate to the same
 native `Inttegro` artifacts used by the React Native SDK. CocoaPods links the
 iOS artifact through `inttegro_flutter.podspec`, while Gradle resolves
-`com.inttegro:inttegro-android:0.3.0`.
+`com.inttegro:inttegro-android:0.4.0`.
 
 ## Requirements
 

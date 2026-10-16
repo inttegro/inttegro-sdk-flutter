@@ -28,8 +28,9 @@ terminal state, and public Checkout transport activity.
 When an idempotent mutation receives `503` with a valid `Retry-After` header,
 the native transport waits and retries once with the same idempotency key. The
 response event records that bounded delay. If the second attempt fails,
-`PaymentSheetFailed` can carry the same `requestId` and `retryAfterSeconds`
-values.
+the diagnostic stream retains the corresponding `requestId` and
+`retryAfterSeconds`; lifecycle failures remain intentionally smaller and safe
+for ordinary application code.
 
 Events exclude Order and Payment IDs, customer and payer fields,
 payment-method details, billing and shipping addresses, request and response

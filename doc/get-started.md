@@ -77,12 +77,13 @@ full-height detent as the summary is revealed.
 final result = await Inttegro.instance.presentPaymentSheet();
 
 switch (result) {
-  case PaymentSheetCompleted():
-    await merchantBackend.verifyAndFulfillOrder(checkout.orderId);
-  case PaymentSheetCanceled():
+  case PaymentSheetCompleted(:final order):
+    await merchantBackend.verifyAndFulfillOrder(order.id);
+  case PaymentSheetCanceled(:final order):
     restoreCheckoutControls();
-  case PaymentSheetFailed(:final code):
-    recordTerminalFailure(code);
+    if (order != null) preserveCheckoutContext(order.id);
+  case PaymentSheetFailed(:final failure):
+    recordTerminalFailure(failure.code);
     showPaymentUnavailable();
 }
 ```
