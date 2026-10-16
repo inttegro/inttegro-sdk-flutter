@@ -23,17 +23,18 @@ import org.json.JSONObject;
 public final class InttegroFlutterPlugin implements
     FlutterPlugin,
     MethodChannel.MethodCallHandler,
-    EventChannel.StreamHandler,
     ActivityAware,
     PluginRegistry.ActivityResultListener {
   private static final String CHANNEL_NAME = "com.inttegro/sdk";
   private static final String EVENT_CHANNEL_NAME = "com.inttegro/sdk/events";
+  private static final String TELEMETRY_CHANNEL_NAME = "com.inttegro/sdk/telemetry";
   private static final int REQUEST_CODE = 18_271;
-  private static final String CANCELED_RESULT = "{\"status\":\"canceled\"}";
 
   private MethodChannel channel;
   private EventChannel eventChannel;
+  private EventChannel telemetryChannel;
   private EventChannel.EventSink eventSink;
+  private EventChannel.EventSink telemetrySink;
   private Activity activity;
   private ActivityPluginBinding activityBinding;
   private String configurationJson;
@@ -45,7 +46,32 @@ public final class InttegroFlutterPlugin implements
     channel = new MethodChannel(binding.getBinaryMessenger(), CHANNEL_NAME);
     channel.setMethodCallHandler(this);
     eventChannel = new EventChannel(binding.getBinaryMessenger(), EVENT_CHANNEL_NAME);
-    eventChannel.setStreamHandler(this);
+    eventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+      @Override
+      public void onListen(Object arguments, EventChannel.EventSink events) {
+        eventSink = events;
+      }
+
+      @Override
+      public void onCancel(Object arguments) {
+        eventSink = null;
+      }
+    });
+    telemetryChannel = new EventChannel(
+        binding.getBinaryMessenger(),
+        TELEMETRY_CHANNEL_NAME
+    );
+    telemetryChannel.setStreamHandler(new EventChannel.StreamHandler() {
+      @Override
+      public void onListen(Object arguments, EventChannel.EventSink events) {
+        telemetrySink = events;
+      }
+
+      @Override
+      public void onCancel(Object arguments) {
+        telemetrySink = null;
+      }
+    });
   }
 
   @Override
@@ -61,6 +87,11 @@ public final class InttegroFlutterPlugin implements
       eventChannel.setStreamHandler(null);
       eventChannel = null;
       eventSink = null;
+    }
+    if (telemetryChannel != null) {
+      telemetryChannel.setStreamHandler(null);
+      telemetryChannel = null;
+      telemetrySink = null;
     }
     rejectPendingPresentation(
         "plugin_detached",
@@ -150,6 +181,7 @@ public final class InttegroFlutterPlugin implements
       launchIntent = PaymentSheetLauncher.createIntent(
           activity,
           configurationJson,
+          payload -> emitLifecycleEvent(payload),
           payload -> emitTelemetryEvent(payload)
       );
       activity.startActivityForResult(launchIntent, REQUEST_CODE);
@@ -178,9 +210,15 @@ public final class InttegroFlutterPlugin implements
     PaymentSheetLauncher.release(launchIntent);
     launchIntent = null;
     try {
-      result.success(jsonObjectToMap(new JSONObject(
-          payload == null ? CANCELED_RESULT : payload
-      )));
+      if (payload == null) {
+        result.error(
+            "invalid_native_result",
+            "The native payment sheet returned no terminal event.",
+            null
+        );
+        return true;
+      }
+      result.success(jsonObjectToMap(new JSONObject(payload)));
     } catch (Exception error) {
       result.error(
           "invalid_native_result",
@@ -222,17 +260,7 @@ public final class InttegroFlutterPlugin implements
     );
   }
 
-  @Override
-  public void onListen(Object arguments, EventChannel.EventSink events) {
-    eventSink = events;
-  }
-
-  @Override
-  public void onCancel(Object arguments) {
-    eventSink = null;
-  }
-
-  private void emitTelemetryEvent(String payload) {
+  private void emitLifecycleEvent(String payload) {
     Activity currentActivity = activity;
     EventChannel.EventSink currentSink = eventSink;
     if (currentActivity == null || currentSink == null) {
@@ -240,6 +268,29 @@ public final class InttegroFlutterPlugin implements
     }
     currentActivity.runOnUiThread(() -> {
       EventChannel.EventSink sink = eventSink;
+      if (sink == null) {
+        return;
+      }
+      try {
+        sink.success(jsonObjectToMap(new JSONObject(payload)));
+      } catch (Exception error) {
+        sink.error(
+            "invalid_native_event",
+            "The native payment sheet returned an invalid lifecycle event.",
+            null
+        );
+      }
+    });
+  }
+
+  private void emitTelemetryEvent(String payload) {
+    Activity currentActivity = activity;
+    EventChannel.EventSink currentSink = telemetrySink;
+    if (currentActivity == null || currentSink == null) {
+      return;
+    }
+    currentActivity.runOnUiThread(() -> {
+      EventChannel.EventSink sink = telemetrySink;
       if (sink == null) {
         return;
       }

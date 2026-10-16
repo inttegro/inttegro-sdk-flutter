@@ -89,19 +89,38 @@ void main() {
 
   test('decodes the shared result union', () {
     final result = PaymentSheetResult.fromJson({
-      'status': 'failed',
-      'error': {
-        'code': 'declined',
-        'message': 'Payment declined',
-        'requestId': 'req_test',
-        'retryAfterSeconds': 30,
+      'type': 'failed',
+      'occurredAt': '2026-10-16T10:00:00.000Z',
+      'flowId': '550e8400-e29b-41d4-a716-446655440000',
+      'sequence': 4,
+      'order': _checkoutOrder,
+      'failure': {
+        'code': 'payment_failed',
+        'message': 'Payment failed',
+        'recoverable': false,
       },
     });
 
     expect(result, isA<PaymentSheetFailed>());
-    expect((result as PaymentSheetFailed).code, 'declined');
-    expect(result.requestId, 'req_test');
-    expect(result.retryAfterSeconds, 30);
+    expect((result as PaymentSheetFailed).failure.code, 'payment_failed');
+    expect(result.order?.id, 'or_test');
+    expect(result.sequence, 4);
+  });
+
+  test('decodes Order-backed lifecycle events independently of telemetry', () {
+    final event = PaymentSheetEvent.fromJson({
+      'type': 'paymentActionRequired',
+      'occurredAt': '2026-10-16T10:00:00.000Z',
+      'flowId': '550e8400-e29b-41d4-a716-446655440000',
+      'sequence': 3,
+      'order': _checkoutOrder,
+      'action': {'type': 'confirmation'},
+    });
+
+    expect(event.type, PaymentSheetEventType.paymentActionRequired);
+    expect(event.order?.id, 'or_test');
+    expect(event.action?.type, CheckoutActionType.confirmation);
+    expect(event.isTerminal, isFalse);
   });
 
   test('decodes privacy-safe telemetry events', () {
@@ -119,14 +138,6 @@ void main() {
       PaymentSheetTelemetryEventName.checkoutLoadStarted,
     );
     expect(event.retryAfterSeconds, 30);
-    final lifecycleEvent = PaymentSheetEvent(
-      flowId: '550e8400-e29b-41d4-a716-446655440000',
-      sequence: 1,
-      type: PaymentSheetEventType.checkoutLoadStarted,
-      timestamp: DateTime.utc(2026, 9, 4, 12),
-    );
-    expect(lifecycleEvent.type, PaymentSheetEventType.checkoutLoadStarted);
-    expect(lifecycleEvent.isRecoverableFailure, isFalse);
     expect(
       () => PaymentSheetTelemetryEvent.fromJson({
         'flowId': '550e8400-e29b-41d4-a716-446655440000',
@@ -149,3 +160,12 @@ void main() {
     expect(diagnostic.name, PaymentSheetTelemetryEventName.requestPrepared);
   });
 }
+
+const _checkoutOrder = <String, Object>{
+  'id': 'or_test',
+  'status': 'requires_action',
+  'merchant': {'displayName': 'Acme'},
+  'amount': {'value': 1500, 'currency': 'ghs'},
+  'lineItems': <Object>[],
+  'documents': <String, Object>{},
+};

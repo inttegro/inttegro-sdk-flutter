@@ -52,8 +52,8 @@ final class PaymentSheetAppearance {
 
 /// Host-owned diagnostics and optional W3C trace context.
 ///
-/// Inttegro installs no exporter. Disabling telemetry prevents both native
-/// event emission and trace-header propagation for the presentation.
+/// Inttegro installs no exporter. Disabling telemetry prevents diagnostic event
+/// emission and trace-header propagation, but not Checkout lifecycle delivery.
 final class PaymentSheetTelemetry {
   /// Creates telemetry and distributed-tracing options.
   const PaymentSheetTelemetry({
@@ -62,7 +62,7 @@ final class PaymentSheetTelemetry {
     this.tracestate,
   });
 
-  /// Whether native events and trace propagation are enabled.
+  /// Whether diagnostic events and trace propagation are enabled.
   final bool enabled;
   /// Valid W3C `traceparent` supplied by the host application.
   final String? traceparent;
@@ -393,61 +393,407 @@ final class PaymentSheetTelemetryEvent {
   final String? errorType;
 }
 
-/// Application-facing payment-sheet lifecycle transitions.
-enum PaymentSheetEventType {
-  /// The native sheet became visible.
-  presented,
-  /// Checkout retrieval began.
-  checkoutLoadStarted,
-  /// Checkout retrieval succeeded.
-  checkoutLoadSucceeded,
-  /// Checkout retrieval failed and may be retried.
-  checkoutLoadFailed,
-  /// A payment attempt began.
-  paymentAttemptStarted,
-  /// A recoverable payment attempt failed.
-  paymentAttemptFailed,
-  /// The payer must enter a confirmation code.
-  confirmationRequired,
-  /// Provider or device authorization is outstanding.
-  authorizationRequired,
-  /// Checkout is being polled for authoritative state.
-  paymentStatusPolling,
-  /// The native flow reached its success state.
-  completed,
-  /// The payer dismissed the sheet.
-  canceled,
-  /// A terminal SDK failure stopped the flow.
-  failed,
+/// Money in an ISO 4217 currency's minor unit.
+final class CheckoutMoney {
+  /// Creates a client-safe Checkout amount.
+  const CheckoutMoney({required this.value, required this.currency});
+
+  factory CheckoutMoney.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'value', 'currency'});
+    final amount = value['value'];
+    final currency = value['currency'];
+    if (amount is! int ||
+        currency is! String ||
+        !RegExp(r'^[A-Za-z]{3}$').hasMatch(currency)) {
+      throw const FormatException('Invalid Checkout money');
+    }
+    return CheckoutMoney(value: amount, currency: currency);
+  }
+
+  /// Amount in the currency's minor unit.
+  final int value;
+  /// Three-letter ISO 4217 currency code.
+  final String currency;
 }
 
-/// An application-facing stage in one payment-sheet presentation.
-///
-/// Recoverable failures leave the native sheet open so the customer can retry.
-/// Terminal application behavior belongs in the [PaymentSheetResult] returned
-/// by `presentPaymentSheet`.
+/// Order states exposed by the Checkout lifecycle.
+enum CheckoutOrderStatus {
+  requiresPayment('requires_payment'),
+  requiresAction('requires_action'),
+  processing('processing'),
+  paid('paid'),
+  failed('failed'),
+  expired('expired'),
+  canceled('canceled');
+
+  const CheckoutOrderStatus(this.wireValue);
+  final String wireValue;
+
+  static CheckoutOrderStatus? fromWireValue(String value) {
+    for (final status in values) {
+      if (status.wireValue == value) return status;
+    }
+    return null;
+  }
+}
+
+/// Merchant identity safe to display in Checkout.
+final class CheckoutMerchant {
+  const CheckoutMerchant({required this.displayName});
+
+  factory CheckoutMerchant.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'displayName'});
+    final displayName = value['displayName'];
+    if (displayName is! String || displayName.isEmpty) {
+      throw const FormatException('Invalid Checkout merchant');
+    }
+    return CheckoutMerchant(displayName: displayName);
+  }
+
+  final String displayName;
+}
+
+/// One client-safe line in the Checkout Order snapshot.
+final class CheckoutLineItem {
+  const CheckoutLineItem({
+    required this.id,
+    required this.name,
+    required this.total,
+    this.quantity,
+  });
+
+  factory CheckoutLineItem.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'id', 'name', 'quantity', 'total'});
+    final id = value['id'];
+    final name = value['name'];
+    final quantity = value['quantity'];
+    final total = value['total'];
+    if (id is! String ||
+        id.isEmpty ||
+        name is! String ||
+        name.isEmpty ||
+        (quantity != null && (quantity is! int || quantity < 0)) ||
+        total is! Map) {
+      throw const FormatException('Invalid Checkout line item');
+    }
+    return CheckoutLineItem(
+      id: id,
+      name: name,
+      quantity: quantity as int?,
+      total: CheckoutMoney.fromJson(Map<Object?, Object?>.from(total)),
+    );
+  }
+
+  final String id;
+  final String name;
+  final int? quantity;
+  final CheckoutMoney total;
+}
+
+/// Secure documents available for the Order.
+final class CheckoutDocuments {
+  const CheckoutDocuments({this.invoiceUrl, this.receiptUrl});
+
+  factory CheckoutDocuments.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'invoiceUrl', 'receiptUrl'});
+    final invoiceUrl = _optionalAbsoluteUri(value['invoiceUrl']);
+    final receiptUrl = _optionalAbsoluteUri(value['receiptUrl']);
+    return CheckoutDocuments(invoiceUrl: invoiceUrl, receiptUrl: receiptUrl);
+  }
+
+  final Uri? invoiceUrl;
+  final Uri? receiptUrl;
+}
+
+/// Client-safe Order snapshot attached to Checkout lifecycle events.
+final class CheckoutOrder {
+  const CheckoutOrder({
+    required this.id,
+    required this.status,
+    required this.merchant,
+    required this.amount,
+    required this.lineItems,
+    required this.documents,
+    this.expiresAt,
+  });
+
+  factory CheckoutOrder.fromJson(Map<Object?, Object?> value) {
+    _expectFields(
+      value,
+      const {
+        'id',
+        'status',
+        'merchant',
+        'amount',
+        'expiresAt',
+        'lineItems',
+        'documents',
+      },
+    );
+    final id = value['id'];
+    final rawStatus = value['status'];
+    final merchant = value['merchant'];
+    final amount = value['amount'];
+    final rawExpiresAt = value['expiresAt'];
+    final lineItems = value['lineItems'];
+    final documents = value['documents'];
+    final status = rawStatus is String
+        ? CheckoutOrderStatus.fromWireValue(rawStatus)
+        : null;
+    final expiresAt = rawExpiresAt == null
+        ? null
+        : rawExpiresAt is String
+            ? DateTime.tryParse(rawExpiresAt)
+            : null;
+    if (id is! String ||
+        id.isEmpty ||
+        status == null ||
+        merchant is! Map ||
+        amount is! Map ||
+        (rawExpiresAt != null && expiresAt == null) ||
+        lineItems is! List ||
+        documents is! Map ||
+        lineItems.any((item) => item is! Map)) {
+      throw const FormatException('Invalid Checkout Order');
+    }
+    return CheckoutOrder(
+      id: id,
+      status: status,
+      merchant: CheckoutMerchant.fromJson(Map<Object?, Object?>.from(merchant)),
+      amount: CheckoutMoney.fromJson(Map<Object?, Object?>.from(amount)),
+      expiresAt: expiresAt,
+      lineItems: lineItems
+          .map(
+            (item) => CheckoutLineItem.fromJson(
+              Map<Object?, Object?>.from(item as Map),
+            ),
+          )
+          .toList(growable: false),
+      documents: CheckoutDocuments.fromJson(
+        Map<Object?, Object?>.from(documents),
+      ),
+    );
+  }
+
+  final String id;
+  final CheckoutOrderStatus status;
+  final CheckoutMerchant merchant;
+  final CheckoutMoney amount;
+  final DateTime? expiresAt;
+  final List<CheckoutLineItem> lineItems;
+  final CheckoutDocuments documents;
+}
+
+/// Additional customer action required before Checkout can complete.
+enum CheckoutActionType {
+  confirmation,
+  authorization,
+  redirect;
+
+  static CheckoutActionType? fromWireValue(String value) {
+    for (final type in values) {
+      if (type.name == value) return type;
+    }
+    return null;
+  }
+}
+
+/// Safe description of the next action required from the customer.
+final class CheckoutAction {
+  const CheckoutAction({required this.type, this.expiresAt});
+
+  factory CheckoutAction.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'type', 'expiresAt'});
+    final rawType = value['type'];
+    final rawExpiresAt = value['expiresAt'];
+    final type = rawType is String
+        ? CheckoutActionType.fromWireValue(rawType)
+        : null;
+    final expiresAt = rawExpiresAt == null
+        ? null
+        : rawExpiresAt is String
+            ? DateTime.tryParse(rawExpiresAt)
+            : null;
+    if (type == null || (rawExpiresAt != null && expiresAt == null)) {
+      throw const FormatException('Invalid Checkout action');
+    }
+    return CheckoutAction(type: type, expiresAt: expiresAt);
+  }
+
+  final CheckoutActionType type;
+  final DateTime? expiresAt;
+}
+
+/// Sanitized reason a Checkout lifecycle operation failed.
+final class CheckoutFailure {
+  const CheckoutFailure({
+    required this.code,
+    required this.message,
+    required this.recoverable,
+  });
+
+  factory CheckoutFailure.fromJson(Map<Object?, Object?> value) {
+    _expectFields(value, const {'code', 'message', 'recoverable'});
+    final code = value['code'];
+    final message = value['message'];
+    final recoverable = value['recoverable'];
+    if (code is! String ||
+        code.isEmpty ||
+        message is! String ||
+        message.isEmpty ||
+        recoverable is! bool) {
+      throw const FormatException('Invalid Checkout failure');
+    }
+    return CheckoutFailure(
+      code: code,
+      message: message,
+      recoverable: recoverable,
+    );
+  }
+
+  final String code;
+  final String message;
+  final bool recoverable;
+}
+
+/// Application-facing payment-sheet lifecycle transitions.
+enum PaymentSheetEventType {
+  presented('presented'),
+  ready('ready'),
+  change('change'),
+  orderPrepared('orderPrepared'),
+  paymentAttemptStarted('paymentAttemptStarted'),
+  paymentActionRequired('paymentActionRequired'),
+  paymentProcessing('paymentProcessing'),
+  paymentAttemptFailed('paymentAttemptFailed'),
+  completed('completed'),
+  canceled('canceled'),
+  failed('failed');
+
+  const PaymentSheetEventType(this.wireValue);
+  final String wireValue;
+
+  static PaymentSheetEventType? fromWireValue(String value) {
+    for (final type in values) {
+      if (type.wireValue == value) return type;
+    }
+    return null;
+  }
+}
+
+/// One ordered application-facing transition from a Checkout presentation.
 final class PaymentSheetEvent {
-  /// Creates one application-facing lifecycle event.
   const PaymentSheetEvent({
     required this.flowId,
     required this.sequence,
     required this.type,
-    required this.timestamp,
-    this.errorType,
+    required this.occurredAt,
+    this.order,
+    this.action,
+    this.failure,
+    this.complete,
+    this.paymentMethod,
   });
 
-  /// Random identifier shared by events from one presentation.
-  final String flowId;
-  /// Monotonically increasing event order within the flow.
-  final int sequence;
-  /// Application-facing lifecycle transition.
-  final PaymentSheetEventType type;
-  /// Time at which the native SDK emitted the event.
-  final DateTime timestamp;
-  /// Privacy-safe failure category when the transition represents a failure.
-  final String? errorType;
+  factory PaymentSheetEvent.fromJson(Map<Object?, Object?> value) {
+    const baseFields = {'type', 'occurredAt', 'flowId', 'sequence'};
+    final rawType = value['type'];
+    final rawOccurredAt = value['occurredAt'];
+    final flowId = value['flowId'];
+    final sequence = value['sequence'];
+    final type = rawType is String
+        ? PaymentSheetEventType.fromWireValue(rawType)
+        : null;
+    final occurredAt = rawOccurredAt is String
+        ? DateTime.tryParse(rawOccurredAt)
+        : null;
+    if (type == null ||
+        occurredAt == null ||
+        flowId is! String ||
+        !_uuidPattern.hasMatch(flowId) ||
+        sequence is! int ||
+        sequence < 1) {
+      throw const FormatException('Invalid payment sheet lifecycle event');
+    }
 
-  /// Whether this event represents the end of the sheet presentation.
+    final extraFields = switch (type) {
+      PaymentSheetEventType.presented || PaymentSheetEventType.ready =>
+        const <String>{},
+      PaymentSheetEventType.change => const {'complete', 'paymentMethod'},
+      PaymentSheetEventType.orderPrepared ||
+      PaymentSheetEventType.paymentAttemptStarted ||
+      PaymentSheetEventType.paymentProcessing ||
+      PaymentSheetEventType.completed =>
+        const {'order'},
+      PaymentSheetEventType.paymentActionRequired => const {'order', 'action'},
+      PaymentSheetEventType.paymentAttemptFailed => const {'order', 'failure'},
+      PaymentSheetEventType.canceled => const {'order'},
+      PaymentSheetEventType.failed => const {'order', 'failure'},
+    };
+    _expectFields(value, {...baseFields, ...extraFields});
+
+    final rawOrder = value['order'];
+    final rawAction = value['action'];
+    final rawFailure = value['failure'];
+    final complete = value['complete'];
+    final paymentMethod = value['paymentMethod'];
+    final order = rawOrder is Map
+        ? CheckoutOrder.fromJson(Map<Object?, Object?>.from(rawOrder))
+        : null;
+    final action = rawAction is Map
+        ? CheckoutAction.fromJson(Map<Object?, Object?>.from(rawAction))
+        : null;
+    final failure = rawFailure is Map
+        ? CheckoutFailure.fromJson(Map<Object?, Object?>.from(rawFailure))
+        : null;
+
+    final valid = switch (type) {
+      PaymentSheetEventType.presented || PaymentSheetEventType.ready => true,
+      PaymentSheetEventType.change =>
+        complete is bool &&
+            (paymentMethod == null || paymentMethod == 'mobile_money'),
+      PaymentSheetEventType.orderPrepared ||
+      PaymentSheetEventType.paymentAttemptStarted ||
+      PaymentSheetEventType.paymentProcessing ||
+      PaymentSheetEventType.completed =>
+        order != null,
+      PaymentSheetEventType.paymentActionRequired =>
+        order != null && action != null,
+      PaymentSheetEventType.paymentAttemptFailed =>
+        order != null && failure != null,
+      PaymentSheetEventType.canceled => rawOrder == null || order != null,
+      PaymentSheetEventType.failed => failure != null,
+    };
+    if (!valid ||
+        (rawOrder != null && order == null) ||
+        (rawAction != null && action == null) ||
+        (rawFailure != null && failure == null)) {
+      throw const FormatException('Invalid payment sheet lifecycle event');
+    }
+
+    return PaymentSheetEvent(
+      flowId: flowId,
+      sequence: sequence,
+      type: type,
+      occurredAt: occurredAt,
+      order: order,
+      action: action,
+      failure: failure,
+      complete: complete as bool?,
+      paymentMethod: paymentMethod as String?,
+    );
+  }
+
+  final String flowId;
+  final int sequence;
+  final PaymentSheetEventType type;
+  final DateTime occurredAt;
+  final CheckoutOrder? order;
+  final CheckoutAction? action;
+  final CheckoutFailure? failure;
+  final bool? complete;
+  final String? paymentMethod;
+
   bool get isTerminal => switch (type) {
     PaymentSheetEventType.completed ||
     PaymentSheetEventType.canceled ||
@@ -456,110 +802,73 @@ final class PaymentSheetEvent {
     _ => false,
   };
 
-  /// Whether the sheet remains open and permits the customer to retry.
-  bool get isRecoverableFailure => switch (type) {
-    PaymentSheetEventType.checkoutLoadFailed ||
-    PaymentSheetEventType.paymentAttemptFailed =>
-      true,
-    _ => false,
-  };
+  bool get isRecoverableFailure =>
+      type == PaymentSheetEventType.paymentAttemptFailed;
 }
 
 /// Terminal outcome of one native payment-sheet presentation.
-///
-/// Recoverable collection failures do not create a result; the native sheet
-/// remains open. A completed result still requires backend verification of the
-/// owner-scoped Order before fulfillment.
 sealed class PaymentSheetResult {
-  /// Creates a terminal result subtype returned by the native bridge.
-  const PaymentSheetResult();
+  const PaymentSheetResult(this.event);
 
-  /// Decodes the strict terminal payload returned by the native bridge.
-  ///
-  /// Throws [FormatException] for unknown states or malformed result fields.
   factory PaymentSheetResult.fromJson(Map<Object?, Object?> value) {
-    switch (value['status']) {
-      case 'completed':
-        final paymentId = value['paymentId'];
-        if (paymentId != null && paymentId is! String) {
-          throw const FormatException('Invalid paymentId from native payment sheet');
-        }
-        return PaymentSheetCompleted(paymentId: paymentId as String?);
-      case 'canceled':
-        return const PaymentSheetCanceled();
-      case 'failed':
-        final error = value['error'];
-        if (error is! Map) {
-          throw const FormatException('Invalid error from native payment sheet');
-        }
-        final code = error['code'];
-        final message = error['message'];
-        final declineCode = error['declineCode'];
-        final requestId = error['requestId'];
-        final retryAfterSeconds = error['retryAfterSeconds'];
-        if (code is! String ||
-            message is! String ||
-            (declineCode != null && declineCode is! String) ||
-            (requestId != null &&
-                (requestId is! String ||
-                    requestId.isEmpty ||
-                    requestId.length > 255)) ||
-            (retryAfterSeconds != null &&
-                (retryAfterSeconds is! int ||
-                    retryAfterSeconds < 0 ||
-                    retryAfterSeconds > 300))) {
-          throw const FormatException('Invalid error from native payment sheet');
-        }
-        return PaymentSheetFailed(
-          code: code,
-          message: message,
-          declineCode: declineCode as String?,
-          requestId: requestId as String?,
-          retryAfterSeconds: retryAfterSeconds as int?,
-        );
-      default:
-        throw const FormatException('Unknown result from native payment sheet');
-    }
+    final event = PaymentSheetEvent.fromJson(value);
+    return switch (event.type) {
+      PaymentSheetEventType.completed => PaymentSheetCompleted(event),
+      PaymentSheetEventType.canceled => PaymentSheetCanceled(event),
+      PaymentSheetEventType.failed => PaymentSheetFailed(event),
+      _ => throw const FormatException(
+          'Native payment sheet returned a non-terminal result',
+        ),
+    };
   }
+
+  /// The exact terminal lifecycle event returned by the native bridge.
+  final PaymentSheetEvent event;
+  String get flowId => event.flowId;
+  int get sequence => event.sequence;
+  DateTime get occurredAt => event.occurredAt;
+  CheckoutOrder? get order => event.order;
 }
 
 /// The payment sheet completed its client-side payment flow.
-///
-/// The merchant backend must still verify the authoritative Order state before
-/// fulfillment.
 final class PaymentSheetCompleted extends PaymentSheetResult {
-  /// Creates a completed client result.
-  const PaymentSheetCompleted({this.paymentId});
+  const PaymentSheetCompleted(super.event);
 
-  /// Payment identifier returned by Checkout, when available.
-  final String? paymentId;
+  @override
+  CheckoutOrder get order => event.order!;
 }
 
 /// The customer dismissed the payment sheet before completion.
 final class PaymentSheetCanceled extends PaymentSheetResult {
-  /// Creates the customer-canceled result.
-  const PaymentSheetCanceled();
+  const PaymentSheetCanceled(super.event);
 }
 
-/// The payment sheet stopped because of a terminal error.
+/// The payment sheet stopped because of a terminal failure.
 final class PaymentSheetFailed extends PaymentSheetResult {
-  /// Creates a terminal failure returned by the native bridge.
-  const PaymentSheetFailed({
-    required this.code,
-    required this.message,
-    this.declineCode,
-    this.requestId,
-    this.retryAfterSeconds,
-  });
+  const PaymentSheetFailed(super.event);
 
-  /// Stable machine-readable category suitable for application branching.
-  final String code;
-  /// Payer-safe or developer-facing description.
-  final String message;
-  /// Optional processor decline classification.
-  final String? declineCode;
-  /// Inttegro request identifier for support correlation.
-  final String? requestId;
-  /// Server-directed delay before retrying the operation.
-  final int? retryAfterSeconds;
+  CheckoutFailure get failure => event.failure!;
+}
+
+final _uuidPattern = RegExp(
+  r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+  caseSensitive: false,
+);
+
+void _expectFields(Map<Object?, Object?> value, Set<String> allowed) {
+  if (value.keys.any((key) => key is! String || !allowed.contains(key))) {
+    throw const FormatException('Unexpected field in native payment sheet payload');
+  }
+}
+
+Uri? _optionalAbsoluteUri(Object? value) {
+  if (value == null) return null;
+  if (value is! String) {
+    throw const FormatException('Invalid Checkout document URL');
+  }
+  final uri = Uri.tryParse(value);
+  if (uri == null || !uri.isAbsolute) {
+    throw const FormatException('Invalid Checkout document URL');
+  }
+  return uri;
 }

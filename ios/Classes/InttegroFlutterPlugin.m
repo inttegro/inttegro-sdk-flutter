@@ -4,14 +4,37 @@
 
 static NSString *const InttegroChannelName = @"com.inttegro/sdk";
 static NSString *const InttegroEventChannelName = @"com.inttegro/sdk/events";
+static NSString *const InttegroTelemetryChannelName = @"com.inttegro/sdk/telemetry";
 static UIViewController *_Nullable InttegroTopViewController(
   UIViewController *_Nullable controller
 );
 
+@interface InttegroFlutterStreamHandler : NSObject <FlutterStreamHandler>
+@property(nonatomic, copy, nullable) FlutterEventSink sink;
+@end
+
+@implementation InttegroFlutterStreamHandler
+
+- (FlutterError *)onListenWithArguments:(id)arguments
+                              eventSink:(FlutterEventSink)events
+{
+  self.sink = [events copy];
+  return nil;
+}
+
+- (FlutterError *)onCancelWithArguments:(id)arguments
+{
+  self.sink = nil;
+  return nil;
+}
+
+@end
+
 @implementation InttegroFlutterPlugin {
   InttegroPaymentSheetCoordinator *_coordinator;
   __weak UIViewController *_viewController;
-  FlutterEventSink _eventSink;
+  InttegroFlutterStreamHandler *_eventHandler;
+  InttegroFlutterStreamHandler *_telemetryHandler;
 }
 
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar> *)registrar
@@ -25,7 +48,11 @@ static UIViewController *_Nullable InttegroTopViewController(
   FlutterEventChannel *eventChannel = [FlutterEventChannel
     eventChannelWithName:InttegroEventChannelName
          binaryMessenger:registrar.messenger];
-  [eventChannel setStreamHandler:instance];
+  [eventChannel setStreamHandler:instance->_eventHandler];
+  FlutterEventChannel *telemetryChannel = [FlutterEventChannel
+    eventChannelWithName:InttegroTelemetryChannelName
+         binaryMessenger:registrar.messenger];
+  [telemetryChannel setStreamHandler:instance->_telemetryHandler];
 }
 
 - (instancetype)initWithViewController:(UIViewController *)viewController
@@ -34,12 +61,22 @@ static UIViewController *_Nullable InttegroTopViewController(
   if (self) {
     _coordinator = [[InttegroPaymentSheetCoordinator alloc] init];
     _viewController = viewController;
+    _eventHandler = [[InttegroFlutterStreamHandler alloc] init];
+    _telemetryHandler = [[InttegroFlutterStreamHandler alloc] init];
     __weak InttegroFlutterPlugin *weakSelf = self;
+    [_coordinator setLifecycleEventHandler:^(NSDictionary *event) {
+      dispatch_async(dispatch_get_main_queue(), ^{
+        InttegroFlutterPlugin *strongSelf = weakSelf;
+        if (strongSelf != nil && strongSelf->_eventHandler.sink != nil) {
+          strongSelf->_eventHandler.sink(event);
+        }
+      });
+    }];
     [_coordinator setTelemetryEventHandler:^(NSDictionary *event) {
       dispatch_async(dispatch_get_main_queue(), ^{
         InttegroFlutterPlugin *strongSelf = weakSelf;
-        if (strongSelf != nil && strongSelf->_eventSink != nil) {
-          strongSelf->_eventSink(event);
+        if (strongSelf != nil && strongSelf->_telemetryHandler.sink != nil) {
+          strongSelf->_telemetryHandler.sink(event);
         }
       });
     }];
@@ -95,19 +132,6 @@ static UIViewController *_Nullable InttegroTopViewController(
   }
 
   result(FlutterMethodNotImplemented);
-}
-
-- (FlutterError *)onListenWithArguments:(id)arguments
-                              eventSink:(FlutterEventSink)events
-{
-  _eventSink = [events copy];
-  return nil;
-}
-
-- (FlutterError *)onCancelWithArguments:(id)arguments
-{
-  _eventSink = nil;
-  return nil;
 }
 
 static UIViewController *InttegroTopViewController(UIViewController *controller)

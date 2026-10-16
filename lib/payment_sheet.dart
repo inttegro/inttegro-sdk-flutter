@@ -10,6 +10,15 @@ library;
 export 'src/inttegro.dart' show Inttegro;
 export 'src/payment_sheet_models.dart'
     show
+        CheckoutAction,
+        CheckoutActionType,
+        CheckoutDocuments,
+        CheckoutFailure,
+        CheckoutLineItem,
+        CheckoutMerchant,
+        CheckoutMoney,
+        CheckoutOrder,
+        CheckoutOrderStatus,
         PaymentSheetAppearance,
         PaymentSheetCanceled,
         PaymentSheetCompleted,

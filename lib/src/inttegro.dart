@@ -18,6 +18,8 @@ final class Inttegro {
 
   static const MethodChannel _channel = MethodChannel('com.inttegro/sdk');
   static const EventChannel _eventChannel = EventChannel('com.inttegro/sdk/events');
+  static const EventChannel _telemetryChannel =
+      EventChannel('com.inttegro/sdk/telemetry');
 
   /// Privacy-safe transport diagnostics for a host-owned telemetry pipeline.
   ///
@@ -25,7 +27,7 @@ final class Inttegro {
   /// payment-method details, addresses, bodies, redirect URLs, and raw error
   /// messages. They are not authoritative payment state.
   late final Stream<PaymentSheetTelemetryEvent> paymentSheetTelemetryEvents =
-      _eventChannel.receiveBroadcastStream().map((value) {
+      _telemetryChannel.receiveBroadcastStream().map((value) {
         if (value is! Map) {
           throw const FormatException(
             'Native payment sheet returned an invalid telemetry event',
@@ -42,10 +44,14 @@ final class Inttegro {
   /// failed attempt is recoverable and does not complete
   /// [presentPaymentSheet].
   late final Stream<PaymentSheetEvent> paymentSheetEvents =
-      paymentSheetTelemetryEvents
-          .map(_toPaymentSheetEvent)
-          .where((event) => event != null)
-          .cast<PaymentSheetEvent>();
+      _eventChannel.receiveBroadcastStream().map((value) {
+        if (value is! Map) {
+          throw const FormatException(
+            'Native payment sheet returned an invalid lifecycle event',
+          );
+        }
+        return PaymentSheetEvent.fromJson(Map<Object?, Object?>.from(value));
+      }).asBroadcastStream();
 
   /// Validates and stores [configuration] for the next presentation.
   ///
@@ -82,46 +88,4 @@ final class Inttegro {
     }
     return PaymentSheetResult.fromJson(value);
   }
-}
-
-PaymentSheetEvent? _toPaymentSheetEvent(PaymentSheetTelemetryEvent event) {
-  final type = switch (event.name) {
-    PaymentSheetTelemetryEventName.sheetPresented =>
-      PaymentSheetEventType.presented,
-    PaymentSheetTelemetryEventName.checkoutLoadStarted =>
-      PaymentSheetEventType.checkoutLoadStarted,
-    PaymentSheetTelemetryEventName.checkoutLoadSucceeded =>
-      PaymentSheetEventType.checkoutLoadSucceeded,
-    PaymentSheetTelemetryEventName.checkoutLoadFailed =>
-      PaymentSheetEventType.checkoutLoadFailed,
-    PaymentSheetTelemetryEventName.paymentAttemptStarted =>
-      PaymentSheetEventType.paymentAttemptStarted,
-    PaymentSheetTelemetryEventName.paymentAttemptFailed =>
-      PaymentSheetEventType.paymentAttemptFailed,
-    PaymentSheetTelemetryEventName.confirmationRequired =>
-      PaymentSheetEventType.confirmationRequired,
-    PaymentSheetTelemetryEventName.authorizationRequired =>
-      PaymentSheetEventType.authorizationRequired,
-    PaymentSheetTelemetryEventName.statusPolling =>
-      PaymentSheetEventType.paymentStatusPolling,
-    PaymentSheetTelemetryEventName.sheetCompleted =>
-      PaymentSheetEventType.completed,
-    PaymentSheetTelemetryEventName.sheetCanceled =>
-      PaymentSheetEventType.canceled,
-    PaymentSheetTelemetryEventName.sheetFailed => PaymentSheetEventType.failed,
-    PaymentSheetTelemetryEventName.requestPrepared ||
-    PaymentSheetTelemetryEventName.httpAttemptStarted ||
-    PaymentSheetTelemetryEventName.responseReceived ||
-    PaymentSheetTelemetryEventName.responseDecoded ||
-    PaymentSheetTelemetryEventName.requestFailed =>
-      null,
-  };
-  if (type == null) return null;
-  return PaymentSheetEvent(
-    flowId: event.flowId,
-    sequence: event.sequence,
-    type: type,
-    timestamp: event.timestamp,
-    errorType: event.errorType,
-  );
 }
