@@ -398,6 +398,7 @@ final class CheckoutMoney {
   /// Creates a client-safe Checkout amount.
   const CheckoutMoney({required this.value, required this.currency});
 
+  /// Parses and validates a Checkout amount from the native bridge.
   factory CheckoutMoney.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'value', 'currency'});
     final amount = value['value'];
@@ -418,17 +419,28 @@ final class CheckoutMoney {
 
 /// Order states exposed by the Checkout lifecycle.
 enum CheckoutOrderStatus {
+  /// The Order is ready for a payment method.
   requiresPayment('requires_payment'),
+  /// The payment requires customer confirmation or authorization.
   requiresAction('requires_action'),
+  /// Inttegro is processing the payment.
   processing('processing'),
+  /// The payment completed successfully.
   paid('paid'),
+  /// The payment failed.
   failed('failed'),
+  /// The Order expired before payment completed.
   expired('expired'),
+  /// The Order was canceled.
   canceled('canceled');
 
+  /// Creates an Order status with its stable bridge value.
   const CheckoutOrderStatus(this.wireValue);
+
+  /// Stable value transported across the native bridge.
   final String wireValue;
 
+  /// Returns the status represented by [value], or `null` when unsupported.
   static CheckoutOrderStatus? fromWireValue(String value) {
     for (final status in values) {
       if (status.wireValue == value) return status;
@@ -439,8 +451,10 @@ enum CheckoutOrderStatus {
 
 /// Merchant identity safe to display in Checkout.
 final class CheckoutMerchant {
+  /// Creates a display-safe merchant identity.
   const CheckoutMerchant({required this.displayName});
 
+  /// Parses and validates a merchant identity from the native bridge.
   factory CheckoutMerchant.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'displayName'});
     final displayName = value['displayName'];
@@ -450,11 +464,13 @@ final class CheckoutMerchant {
     return CheckoutMerchant(displayName: displayName);
   }
 
+  /// Merchant name suitable for customer-facing Checkout UI.
   final String displayName;
 }
 
 /// One client-safe line in the Checkout Order snapshot.
 final class CheckoutLineItem {
+  /// Creates one line in a client-safe Order snapshot.
   const CheckoutLineItem({
     required this.id,
     required this.name,
@@ -462,6 +478,7 @@ final class CheckoutLineItem {
     this.quantity,
   });
 
+  /// Parses and validates a line item from the native bridge.
   factory CheckoutLineItem.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'id', 'name', 'quantity', 'total'});
     final id = value['id'];
@@ -484,16 +501,25 @@ final class CheckoutLineItem {
     );
   }
 
+  /// Public line-item identifier.
   final String id;
+
+  /// Customer-facing line-item name.
   final String name;
+
+  /// Item quantity when the Order supplies one.
   final int? quantity;
+
+  /// Total amount for this line.
   final CheckoutMoney total;
 }
 
 /// Secure documents available for the Order.
 final class CheckoutDocuments {
+  /// Creates the set of secure Order document links.
   const CheckoutDocuments({this.invoiceUrl, this.receiptUrl});
 
+  /// Parses and validates document links from the native bridge.
   factory CheckoutDocuments.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'invoiceUrl', 'receiptUrl'});
     final invoiceUrl = _optionalAbsoluteUri(value['invoiceUrl']);
@@ -501,12 +527,16 @@ final class CheckoutDocuments {
     return CheckoutDocuments(invoiceUrl: invoiceUrl, receiptUrl: receiptUrl);
   }
 
+  /// Secure invoice download URL when available.
   final Uri? invoiceUrl;
+
+  /// Secure receipt download URL when available.
   final Uri? receiptUrl;
 }
 
 /// Client-safe Order snapshot attached to Checkout lifecycle events.
 final class CheckoutOrder {
+  /// Creates a client-safe Order snapshot.
   const CheckoutOrder({
     required this.id,
     required this.status,
@@ -517,6 +547,7 @@ final class CheckoutOrder {
     this.expiresAt,
   });
 
+  /// Parses and validates an Order snapshot from the native bridge.
   factory CheckoutOrder.fromJson(Map<Object?, Object?> value) {
     _expectFields(
       value,
@@ -575,21 +606,38 @@ final class CheckoutOrder {
     );
   }
 
+  /// Public Order identifier.
   final String id;
+
+  /// Current Order state.
   final CheckoutOrderStatus status;
+
+  /// Merchant identity safe to display to the customer.
   final CheckoutMerchant merchant;
+
+  /// Total amount payable for the Order.
   final CheckoutMoney amount;
+
+  /// Time after which the Order can no longer be paid.
   final DateTime? expiresAt;
+
+  /// Client-safe summary of the Order contents.
   final List<CheckoutLineItem> lineItems;
+
+  /// Secure invoice and receipt links available for the Order.
   final CheckoutDocuments documents;
 }
 
 /// Additional customer action required before Checkout can complete.
 enum CheckoutActionType {
+  /// The customer must confirm the payment.
   confirmation,
+  /// The customer must authorize the payment.
   authorization,
+  /// The customer must complete a redirect flow.
   redirect;
 
+  /// Returns the action represented by [value], or `null` when unsupported.
   static CheckoutActionType? fromWireValue(String value) {
     for (final type in values) {
       if (type.name == value) return type;
@@ -600,8 +648,10 @@ enum CheckoutActionType {
 
 /// Safe description of the next action required from the customer.
 final class CheckoutAction {
+  /// Creates a customer action required by Checkout.
   const CheckoutAction({required this.type, this.expiresAt});
 
+  /// Parses and validates a required action from the native bridge.
   factory CheckoutAction.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'type', 'expiresAt'});
     final rawType = value['type'];
@@ -620,18 +670,23 @@ final class CheckoutAction {
     return CheckoutAction(type: type, expiresAt: expiresAt);
   }
 
+  /// Kind of action the customer must complete.
   final CheckoutActionType type;
+
+  /// Time after which the action is no longer valid.
   final DateTime? expiresAt;
 }
 
 /// Sanitized reason a Checkout lifecycle operation failed.
 final class CheckoutFailure {
+  /// Creates a sanitized Checkout failure.
   const CheckoutFailure({
     required this.code,
     required this.message,
     required this.recoverable,
   });
 
+  /// Parses and validates a safe failure from the native bridge.
   factory CheckoutFailure.fromJson(Map<Object?, Object?> value) {
     _expectFields(value, const {'code', 'message', 'recoverable'});
     final code = value['code'];
@@ -651,28 +706,48 @@ final class CheckoutFailure {
     );
   }
 
+  /// Stable machine-readable failure code.
   final String code;
+
+  /// Customer-safe description of the failure.
   final String message;
+
+  /// Whether the customer can retry within the current presentation.
   final bool recoverable;
 }
 
 /// Application-facing payment-sheet lifecycle transitions.
 enum PaymentSheetEventType {
+  /// The native sheet became visible.
   presented('presented'),
+  /// Checkout is ready for customer interaction.
   ready('ready'),
+  /// Customer input changed the form completion state.
   change('change'),
+  /// Checkout prepared the Order for payment.
   orderPrepared('orderPrepared'),
+  /// A payment attempt began.
   paymentAttemptStarted('paymentAttemptStarted'),
+  /// The payment requires customer action.
   paymentActionRequired('paymentActionRequired'),
+  /// Inttegro is processing the payment.
   paymentProcessing('paymentProcessing'),
+  /// A recoverable payment attempt failed.
   paymentAttemptFailed('paymentAttemptFailed'),
+  /// Checkout completed successfully.
   completed('completed'),
+  /// The customer canceled the presentation.
   canceled('canceled'),
+  /// Checkout ended with a terminal failure.
   failed('failed');
 
+  /// Creates an event type with its stable bridge value.
   const PaymentSheetEventType(this.wireValue);
+
+  /// Stable value transported across the native bridge.
   final String wireValue;
 
+  /// Returns the event type represented by [value], or `null` if unsupported.
   static PaymentSheetEventType? fromWireValue(String value) {
     for (final type in values) {
       if (type.wireValue == value) return type;
@@ -683,6 +758,7 @@ enum PaymentSheetEventType {
 
 /// One ordered application-facing transition from a Checkout presentation.
 final class PaymentSheetEvent {
+  /// Creates one ordered Checkout lifecycle event.
   const PaymentSheetEvent({
     required this.flowId,
     required this.sequence,
@@ -695,6 +771,7 @@ final class PaymentSheetEvent {
     this.paymentMethod,
   });
 
+  /// Parses and validates a lifecycle event from the native bridge.
   factory PaymentSheetEvent.fromJson(Map<Object?, Object?> value) {
     const baseFields = {'type', 'occurredAt', 'flowId', 'sequence'};
     final rawType = value['type'];
@@ -784,16 +861,34 @@ final class PaymentSheetEvent {
     );
   }
 
+  /// Random identifier shared by events from one sheet presentation.
   final String flowId;
+
+  /// Monotonically increasing event order within the flow.
   final int sequence;
+
+  /// Lifecycle transition represented by this event.
   final PaymentSheetEventType type;
+
+  /// Time at which the native SDK emitted the event.
   final DateTime occurredAt;
+
+  /// Client-safe Order snapshot for Order-backed events.
   final CheckoutOrder? order;
+
+  /// Customer action required by `paymentActionRequired`.
   final CheckoutAction? action;
+
+  /// Sanitized failure attached to failure events.
   final CheckoutFailure? failure;
+
+  /// Whether required payer input is complete for a `change` event.
   final bool? complete;
+
+  /// Selected payment method for a `change` event, when known.
   final String? paymentMethod;
 
+  /// Whether this event closes the current sheet presentation.
   bool get isTerminal => switch (type) {
     PaymentSheetEventType.completed ||
     PaymentSheetEventType.canceled ||
@@ -802,14 +897,17 @@ final class PaymentSheetEvent {
     _ => false,
   };
 
+  /// Whether this event describes a retryable payment attempt.
   bool get isRecoverableFailure =>
       type == PaymentSheetEventType.paymentAttemptFailed;
 }
 
 /// Terminal outcome of one native payment-sheet presentation.
 sealed class PaymentSheetResult {
+  /// Creates a terminal result around its exact lifecycle [event].
   const PaymentSheetResult(this.event);
 
+  /// Parses a terminal lifecycle event returned by the native bridge.
   factory PaymentSheetResult.fromJson(Map<Object?, Object?> value) {
     final event = PaymentSheetEvent.fromJson(value);
     return switch (event.type) {
@@ -824,29 +922,42 @@ sealed class PaymentSheetResult {
 
   /// The exact terminal lifecycle event returned by the native bridge.
   final PaymentSheetEvent event;
+
+  /// Presentation identifier shared with all lifecycle events in the flow.
   String get flowId => event.flowId;
+
+  /// Final sequence number in the presentation flow.
   int get sequence => event.sequence;
+
+  /// Time at which the terminal event occurred.
   DateTime get occurredAt => event.occurredAt;
+
+  /// Final client-safe Order snapshot when one was prepared.
   CheckoutOrder? get order => event.order;
 }
 
 /// The payment sheet completed its client-side payment flow.
 final class PaymentSheetCompleted extends PaymentSheetResult {
+  /// Creates a successful terminal result.
   const PaymentSheetCompleted(super.event);
 
   @override
+  /// Final paid Order snapshot.
   CheckoutOrder get order => event.order!;
 }
 
 /// The customer dismissed the payment sheet before completion.
 final class PaymentSheetCanceled extends PaymentSheetResult {
+  /// Creates a customer-canceled terminal result.
   const PaymentSheetCanceled(super.event);
 }
 
 /// The payment sheet stopped because of a terminal failure.
 final class PaymentSheetFailed extends PaymentSheetResult {
+  /// Creates a terminal failure result.
   const PaymentSheetFailed(super.event);
 
+  /// Sanitized reason Checkout could not continue.
   CheckoutFailure get failure => event.failure!;
 }
 
