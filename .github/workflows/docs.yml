@@ -42,12 +42,12 @@ jobs:
         run: |
           flutter pub get
           SOURCE_SHA="$(git rev-parse HEAD)"
-          dart doc \
-            --output=build/api-docs \
-            --link-to-source-root . \
-            --link-to-source-revision "$SOURCE_SHA" \
-            --link-to-source-uri-template \
-            "https://github.com/${GITHUB_REPOSITORY}/blob/%r%/%f%#L%l%"
+          cat >> dartdoc_options.yaml <<EOF
+            linkToSource:
+              root: .
+              uriTemplate: "https://github.com/${GITHUB_REPOSITORY}/blob/${SOURCE_SHA}/%f%#L%l%"
+          EOF
+          dart doc --output=build/api-docs .
 
       - name: Publish versioned documentation
         shell: bash
