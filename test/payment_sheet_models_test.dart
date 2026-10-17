@@ -158,6 +158,18 @@ void main() {
     });
     expect(diagnostic.operation, PaymentSheetTelemetryOperation.checkoutLookup);
     expect(diagnostic.name, PaymentSheetTelemetryEventName.requestPrepared);
+
+    final payDiagnostic = PaymentSheetTelemetryEvent.fromJson({
+      'flowId': '550e8400-e29b-41d4-a716-446655440000',
+      'sequence': 3,
+      'name': 'inttegro.request.prepared',
+      'timestamp': '2026-09-04T12:00:00.000Z',
+      'operation': 'checkout.pay',
+    });
+    expect(
+      payDiagnostic.operation,
+      PaymentSheetTelemetryOperation.checkoutPay,
+    );
   });
 }
 

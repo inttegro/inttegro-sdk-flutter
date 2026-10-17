@@ -137,8 +137,9 @@ final class PaymentSheetFeatures {
 
 /// Configuration stored for the next native payment-sheet presentation.
 ///
-/// [orderId] is the public identifier returned by a merchant backend after it
-/// creates and finalizes an Order. Never put a merchant API key in Flutter.
+/// Provide either [orderId], returned by a merchant backend after it finalizes
+/// an Order, or [purchaseIntentId] for a Buy link whose Order is created only
+/// when the payer submits payment. Never put a merchant API key in Flutter.
 final class PaymentSheetConfiguration {
   /// Creates client-owned Checkout and presentation configuration.
   const PaymentSheetConfiguration({
@@ -152,7 +153,7 @@ final class PaymentSheetConfiguration {
 
   /// Public ID of an Order created and finalized by the backend.
   final String? orderId;
-  /// Public Purchase Intent whose amount the payer will choose.
+  /// Public Buy link whose product choices remain local until payment is submitted.
   final String? purchaseIntentId;
   /// Absolute application URI used after an external provider handoff.
   final Uri? returnUrl;

@@ -1,6 +1,6 @@
 # Inttegro Flutter
 
-[API reference](https://flutter.inttegro.dev/v0.5.0/) ·
+[API reference](https://flutter.inttegro.dev/v0.5.1/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
 Typed Flutter facade for Inttegro's native payment sheet. The current collection
@@ -74,8 +74,8 @@ try {
 }
 ```
 
-For a Buy link backed by a `customer_selected_amount` price, initialize with
-the client-safe Purchase Intent instead of a finalized Order:
+For a Buy link, initialize with the client-safe Purchase Intent instead of a
+finalized Order:
 
 ```dart
 await Inttegro.instance.initializePaymentSheet(
@@ -83,9 +83,10 @@ await Inttegro.instance.initializePaymentSheet(
 );
 ```
 
-The native sheet retrieves the merchant's currency, range, and suggested
-amounts, lets the payer choose any valid amount, and then creates the finalized
-Order idempotently before continuing through the same payment flow. Supply
+The native sheet retrieves the Buy-link choices and lets the payer choose the
+product variant, quantity, customer details, and—when supported—amount. It
+creates the finalized Order and starts payment together only when the payer
+presses Pay. Supply
 exactly one of `orderId` or `purchaseIntentId`.
 
 The umbrella `inttegro_flutter.dart` library remains supported. Applications
@@ -140,7 +141,7 @@ The package registers an Android and iOS plugin for each Flutter engine. The
 plugins keep presentation state isolated per engine and delegate to the same
 native `Inttegro` artifacts used by the React Native SDK. CocoaPods links the
 iOS artifact through `inttegro_flutter.podspec`, while Gradle resolves
-`com.inttegro:inttegro-android:0.4.0`.
+`com.inttegro:inttegro-android:0.4.2`.
 
 ## Requirements
 

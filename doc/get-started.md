@@ -48,10 +48,9 @@ Initialization validates the bridge payload without retrieving Checkout or
 starting payment. Call it again when the Order ID or presentation options
 change. Never place an Inttegro merchant API key in a Flutter application.
 
-### Let the payer choose the amount
+### Start from a Buy link
 
-If your backend returns a Buy link whose price type is
-`customer_selected_amount`, pass its public Purchase Intent ID instead:
+If your backend returns a Buy link, pass its public Purchase Intent ID instead:
 
 ```dart
 await Inttegro.instance.initializePaymentSheet(
@@ -62,10 +61,12 @@ await Inttegro.instance.initializePaymentSheet(
 );
 ```
 
-Do not also provide `orderId`. The sheet first shows the authoritative currency,
-minimum, optional maximum, and suggested amounts from Checkout. Once the payer
-continues, Inttegro creates the Order idempotently and the ordinary
-payment-method flow begins. Suggested amounts are shortcuts, not an allow-list.
+Do not also provide `orderId`. The native sheet first shows the authoritative
+Buy-link choices: product variant, quantity, customer details, and—when the
+price supports it—amount. The sheet gathers payment details locally, then
+Inttegro creates the Order and starts payment together only when the payer
+presses Pay. Suggested
+amounts are shortcuts, not an allow-list.
 
 Enabling `showLineItems` offers an Order summary without opening it for the
 payer. If they choose to view the items, the native sheet expands to its
