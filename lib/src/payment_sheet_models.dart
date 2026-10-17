@@ -2,14 +2,20 @@
 ///
 /// Omit values to inherit platform and application defaults. Inttegro retains
 /// native controls, layout, accessibility behavior, and payment-state semantics.
+enum PaymentSheetTheme { light, dark, system }
+
 final class PaymentSheetAppearance {
   /// Creates optional native appearance overrides.
   const PaymentSheetAppearance({
+    this.theme = PaymentSheetTheme.system,
     this.primaryColor,
     this.backgroundColor,
     this.textColor,
     this.cornerRadius,
   });
+
+  /// Color scheme used by the native sheet.
+  final PaymentSheetTheme theme;
 
   /// Primary action color as `#RRGGBB` or `#RRGGBBAA`.
   final String? primaryColor;
@@ -35,6 +41,7 @@ final class PaymentSheetAppearance {
     }
 
     return {
+      if (theme != PaymentSheetTheme.system) 'theme': theme.name,
       'primaryColor': ?primaryColor,
       'backgroundColor': ?backgroundColor,
       'textColor': ?textColor,
@@ -145,6 +152,7 @@ final class PaymentSheetConfiguration {
   const PaymentSheetConfiguration({
     this.orderId,
     this.purchaseIntentId,
+    this.title = 'Payment',
     this.returnUrl,
     this.appearance = const PaymentSheetAppearance(),
     this.telemetry = const PaymentSheetTelemetry(),
@@ -155,6 +163,8 @@ final class PaymentSheetConfiguration {
   final String? orderId;
   /// Public Buy link whose product choices remain local until payment is submitted.
   final String? purchaseIntentId;
+  /// Visible payment-sheet title.
+  final String title;
   /// Absolute application URI used after an external provider handoff.
   final Uri? returnUrl;
   /// Restrained native appearance overrides.
@@ -177,6 +187,14 @@ final class PaymentSheetConfiguration {
         'Provide exactly one of orderId or purchaseIntentId',
       );
     }
+    final normalizedTitle = title.trim();
+    if (normalizedTitle.isEmpty || normalizedTitle.length > 120) {
+      throw ArgumentError.value(
+        title,
+        'title',
+        'must be between 1 and 120 characters',
+      );
+    }
     if (returnUrl case final value? when !value.isAbsolute) {
       throw ArgumentError.value(value, 'returnUrl', 'must be an absolute URI');
     }
@@ -188,6 +206,7 @@ final class PaymentSheetConfiguration {
       if (normalizedOrderId?.isNotEmpty == true) 'orderId': normalizedOrderId!,
       if (normalizedPurchaseIntentId?.isNotEmpty == true)
         'purchaseIntentId': normalizedPurchaseIntentId!,
+      if (normalizedTitle != 'Payment') 'title': normalizedTitle,
       if (returnUrl case final value?) 'returnURL': value.toString(),
       if (appearanceJson.isNotEmpty) 'appearance': appearanceJson,
       if (telemetryJson.isNotEmpty) 'telemetry': telemetryJson,

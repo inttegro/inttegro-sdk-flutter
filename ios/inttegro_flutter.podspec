@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name = 'inttegro_flutter'
-  spec.version = '0.5.1'
+  spec.version = '0.5.2'
   spec.summary = 'Flutter bridge for the native Inttegro payment sheet.'
   spec.homepage = 'https://inttegro.com'
   spec.license = { type: 'MIT' }
@@ -14,5 +14,5 @@ Pod::Spec.new do |spec|
   spec.static_framework = true
 
   spec.dependency 'Flutter'
-  spec.dependency 'Inttegro', '0.4.2'
+  spec.dependency 'Inttegro', '0.4.3'
 end

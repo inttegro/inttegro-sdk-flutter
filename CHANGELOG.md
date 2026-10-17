@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-10-17
+
+- Add configurable payment-sheet titles.
+- Support light, dark, and system appearance modes through the native bridge.
+- Update the native iOS and Android dependency to 0.4.3.
+
 ## 0.5.1 - 2026-10-17
 
 - Support fixed-price, customer-selected, and variant Buy links without

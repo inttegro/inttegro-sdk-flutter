@@ -1,6 +1,6 @@
 # Inttegro Flutter
 
-[API reference](https://flutter.inttegro.dev/v0.5.1/) ·
+[API reference](https://flutter.inttegro.dev/v0.5.2/) ·
 [Studio guide](https://studio.inttegro.com/sdks/flutter)
 
 Typed Flutter facade for Inttegro's native payment sheet. The current collection
@@ -42,7 +42,11 @@ final lifecycleSubscription = Inttegro.instance.paymentSheetEvents.listen(
 await Inttegro.instance.initializePaymentSheet(
   PaymentSheetConfiguration(
     orderId: orderId,
+    title: 'Complete contribution',
     returnUrl: Uri.parse('merchant-app://inttegro-return'),
+    appearance: const PaymentSheetAppearance(
+      theme: PaymentSheetTheme.system,
+    ),
     telemetry: activeTraceContext, // Optional traceparent and tracestate.
     features: const PaymentSheetFeatures(
       showLineItems: true,
@@ -141,7 +145,7 @@ The package registers an Android and iOS plugin for each Flutter engine. The
 plugins keep presentation state isolated per engine and delegate to the same
 native `Inttegro` artifacts used by the React Native SDK. CocoaPods links the
 iOS artifact through `inttegro_flutter.podspec`, while Gradle resolves
-`com.inttegro:inttegro-android:0.4.2`.
+`com.inttegro:inttegro-android:0.4.3`.
 
 ## Requirements
 

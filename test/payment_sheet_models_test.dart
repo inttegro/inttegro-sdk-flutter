@@ -6,11 +6,17 @@ void main() {
     test('normalizes its bridge payload', () {
       final value = PaymentSheetConfiguration(
         orderId: '  or_test  ',
+        title: '  Complete contribution  ',
         returnUrl: Uri.parse('merchant-app://inttegro-return'),
+        appearance: const PaymentSheetAppearance(
+          theme: PaymentSheetTheme.dark,
+        ),
       ).toJson();
 
       expect(value['orderId'], 'or_test');
+      expect(value['title'], 'Complete contribution');
       expect(value['returnURL'], 'merchant-app://inttegro-return');
+      expect(value['appearance'], {'theme': 'dark'});
     });
 
     test('serializes a customer-selected amount Purchase Intent', () {
@@ -30,6 +36,16 @@ void main() {
         () => const PaymentSheetConfiguration(
           orderId: 'or_test',
           purchaseIntentId: 'sale_test',
+        ).toJson(),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects an empty title', () {
+      expect(
+        () => const PaymentSheetConfiguration(
+          orderId: 'or_test',
+          title: '   ',
         ).toJson(),
         throwsArgumentError,
       );
