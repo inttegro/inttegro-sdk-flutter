@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the PaymentSheetTelemetryEvent.fromJson constructor from Class PaymentSheetTelemetryEvent from the inttegro_flutter library, for the Dart programming language.">
+  <title>PaymentSheetTelemetryEvent.fromJson constructor - PaymentSheetTelemetryEvent - inttegro_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">inttegro_flutter</a></li>
+    <li><a href="../../inttegro_flutter/">inttegro_flutter.dart</a></li>
+    <li><a href="../../inttegro_flutter/PaymentSheetTelemetryEvent-class.html">PaymentSheetTelemetryEvent</a></li>
+    <li class="self-crumb">PaymentSheetTelemetryEvent.fromJson factory constructor</li>
+  </ol>
+  <div class="self-name">PaymentSheetTelemetryEvent.fromJson</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="inttegro_flutter&#47;PaymentSheetTelemetryEvent-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+  <div id="external-links" class="btn-group"><a title="View source code" class="source-link" href="https://github.com/inttegro/inttegro-sdk-flutter/blob/4b43e3c6c92664f16e6ea0e7e0ccce9bd192a12e/lib/src/payment_sheet_models.dart#L331"><span class="material-symbols-outlined">description</span></a></div>
+<h1><span class="kind-constructor">PaymentSheetTelemetryEvent.fromJson</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+      <span class="name ">PaymentSheetTelemetryEvent.fromJson</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="fromJson-param-value"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span> <span class="parameter-name">value</span></span></li>
+</ol>)
+    </section>
+    
+<section class="desc markdown">
+  <p>Decodes the strict, versioned payload emitted by the native SDK.</p>
+<p>Throws <a href="https://api.flutter.dev/flutter/dart-core/FormatException-class.html">FormatException</a> for unknown names, unexpected fields, malformed
+identifiers, invalid status codes, or unbounded values.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">factory PaymentSheetTelemetryEvent.fromJson(Map&lt;Object?, Object?&gt; value) {
+  final flowId = value[&#39;flowId&#39;];
+  final sequence = value[&#39;sequence&#39;];
+  final rawName = value[&#39;name&#39;];
+  final timestamp = value[&#39;timestamp&#39;];
+  final rawOperation = value[&#39;operation&#39;];
+  final httpStatusCode = value[&#39;httpStatusCode&#39;];
+  final requestId = value[&#39;requestId&#39;];
+  final retryAfterSeconds = value[&#39;retryAfterSeconds&#39;];
+  final errorType = value[&#39;errorType&#39;];
+  if (value.keys.any(
+        (key) =&gt;
+            key is! String || !_paymentSheetTelemetryEventFields.contains(key),
+      ) ||
+      flowId is! String ||
+      !RegExp(
+        r&#39;^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$&#39;,
+        caseSensitive: false,
+      ).hasMatch(flowId) ||
+      sequence is! int ||
+      sequence &lt; 1 ||
+      rawName is! String ||
+      timestamp is! String ||
+      DateTime.tryParse(timestamp) == null ||
+      (rawOperation != null &amp;&amp; rawOperation is! String) ||
+      (httpStatusCode != null &amp;&amp;
+          (httpStatusCode is! int ||
+              httpStatusCode &lt; 100 ||
+              httpStatusCode &gt; 599)) ||
+      (requestId != null &amp;&amp;
+          (requestId is! String ||
+              requestId.isEmpty ||
+              requestId.length &gt; 255)) ||
+      (retryAfterSeconds != null &amp;&amp;
+          (retryAfterSeconds is! int ||
+              retryAfterSeconds &lt; 0 ||
+              retryAfterSeconds &gt; 300)) ||
+      (errorType != null &amp;&amp;
+          (errorType is! String || errorType.isEmpty || errorType.length &gt; 64))) {
+    throw const FormatException(
+      &#39;Native payment sheet returned an invalid telemetry event&#39;,
+    );
+  }
+  final name = PaymentSheetTelemetryEventName.fromWireValue(rawName);
+  final operation = rawOperation == null
+      ? null
+      : PaymentSheetTelemetryOperation.fromWireValue(rawOperation as String);
+  if (name == null || (rawOperation != null &amp;&amp; operation == null)) {
+    throw const FormatException(
+      &#39;Native payment sheet returned an unknown telemetry event&#39;,
+    );
+  }
+  return PaymentSheetTelemetryEvent(
+    flowId: flowId,
+    sequence: sequence,
+    name: name,
+    timestamp: DateTime.parse(timestamp),
+    operation: operation,
+    httpStatusCode: httpStatusCode as int?,
+    requestId: requestId as String?,
+    retryAfterSeconds: retryAfterSeconds as int?,
+    errorType: errorType as String?,
+  );
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">inttegro_flutter</a></li>
+    <li><a href="../../inttegro_flutter/">inttegro_flutter</a></li>
+    <li><a href="../../inttegro_flutter/PaymentSheetTelemetryEvent-class.html">PaymentSheetTelemetryEvent</a></li>
+    <li class="self-crumb">PaymentSheetTelemetryEvent.fromJson factory constructor</li>
+</ol>
+
+    <h5>PaymentSheetTelemetryEvent class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    inttegro_flutter
+      0.5.2
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

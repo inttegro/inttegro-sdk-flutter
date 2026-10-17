@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="inttegro_flutter library API docs, for the Dart programming language.">
+  <title>inttegro_flutter library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">inttegro_flutter</a></li>
+    <li class="self-crumb">inttegro_flutter.dart</li>
+  </ol>
+  <div class="self-name">inttegro_flutter</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar=""
+    data-below-sidebar="inttegro_flutter&#47;inttegro_flutter-library-sidebar.html">
+  
+    <div>
+      
+  <div id="external-links" class="btn-group"><a title="View source code" class="source-link" href="https://github.com/inttegro/inttegro-sdk-flutter/blob/4b43e3c6c92664f16e6ea0e7e0ccce9bd192a12e/lib/inttegro_flutter.dart#L1"><span class="material-symbols-outlined">description</span></a></div>
+
+      <h1>
+        <span class="kind-library">inttegro_flutter</span>
+        library 
+ 
+
+      </h1>
+    </div>
+
+    
+<section class="desc markdown">
+  <p>Inttegro's Flutter SDK for native Checkout payment collection.</p>
+<p>This umbrella library preserves the original import surface. Applications
+may instead import <code>payment_sheet.dart</code>, <code>events.dart</code>, or <code>telemetry.dart</code>
+when they want API documentation and dependencies grouped by responsibility.
+The native iOS and Android SDKs still own payment UI, validation,
+authentication, accessibility, and lifecycle state.</p>
+</section>
+
+
+    <section class="summary offset-anchor" id="classes">
+      <h2>Classes</h2>
+      <dl>
+          <dt id="CheckoutAction">
+  <span class="name "><a href="../inttegro_flutter/CheckoutAction-class.html">CheckoutAction</a></span> 
+
+</dt>
+<dd>
+  Safe description of the next action required from the customer.
+</dd>
+
+          <dt id="CheckoutDocuments">
+  <span class="name "><a href="../inttegro_flutter/CheckoutDocuments-class.html">CheckoutDocuments</a></span> 
+
+</dt>
+<dd>
+  Secure documents available for the Order.
+</dd>
+
+          <dt id="CheckoutFailure">
+  <span class="name "><a href="../inttegro_flutter/CheckoutFailure-class.html">CheckoutFailure</a></span> 
+
+</dt>
+<dd>
+  Sanitized reason a Checkout lifecycle operation failed.
+</dd>
+
+          <dt id="CheckoutLineItem">
+  <span class="name "><a href="../inttegro_flutter/CheckoutLineItem-class.html">CheckoutLineItem</a></span> 
+
+</dt>
+<dd>
+  One client-safe line in the Checkout Order snapshot.
+</dd>
+
+          <dt id="CheckoutMerchant">
+  <span class="name "><a href="../inttegro_flutter/CheckoutMerchant-class.html">CheckoutMerchant</a></span> 
+
+</dt>
+<dd>
+  Merchant identity safe to display in Checkout.
+</dd>
+
+          <dt id="CheckoutMoney">
+  <span class="name "><a href="../inttegro_flutter/CheckoutMoney-class.html">CheckoutMoney</a></span> 
+
+</dt>
+<dd>
+  Money in an ISO 4217 currency's minor unit.
+</dd>
+
+          <dt id="CheckoutOrder">
+  <span class="name "><a href="../inttegro_flutter/CheckoutOrder-class.html">CheckoutOrder</a></span> 
+
+</dt>
+<dd>
+  Client-safe Order snapshot attached to Checkout lifecycle events.
+</dd>
+
+          <dt id="Inttegro">
+  <span class="name "><a href="../inttegro_flutter/Inttegro-class.html">Inttegro</a></span> 
+
+</dt>
+<dd>
+  Entry point for configuring, presenting, and observing the native sheet.
+</dd>
+
+          <dt id="PaymentSheetAppearance">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetAppearance-class.html">PaymentSheetAppearance</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="PaymentSheetCanceled">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetCanceled-class.html">PaymentSheetCanceled</a></span> 
+
+</dt>
+<dd>
+  The customer dismissed the payment sheet before completion.
+</dd>
+
+          <dt id="PaymentSheetCompleted">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetCompleted-class.html">PaymentSheetCompleted</a></span> 
+
+</dt>
+<dd>
+  The payment sheet completed its client-side payment flow.
+</dd>
+
+          <dt id="PaymentSheetConfiguration">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetConfiguration-class.html">PaymentSheetConfiguration</a></span> 
+
+</dt>
+<dd>
+  Configuration stored for the next native payment-sheet presentation.
+</dd>
+
+          <dt id="PaymentSheetEvent">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetEvent-class.html">PaymentSheetEvent</a></span> 
+
+</dt>
+<dd>
+  One ordered application-facing transition from a Checkout presentation.
+</dd>
+
+          <dt id="PaymentSheetFailed">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetFailed-class.html">PaymentSheetFailed</a></span> 
+
+</dt>
+<dd>
+  The payment sheet stopped because of a terminal failure.
+</dd>
+
+          <dt id="PaymentSheetFeatures">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetFeatures-class.html">PaymentSheetFeatures</a></span> 
+
+</dt>
+<dd>
+  Optional content and actions exposed by the native payment sheet.
+</dd>
+
+          <dt id="PaymentSheetResult">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetResult-class.html">PaymentSheetResult</a></span> 
+
+</dt>
+<dd>
+  Terminal outcome of one native payment-sheet presentation.
+</dd>
+
+          <dt id="PaymentSheetTelemetry">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetTelemetry-class.html">PaymentSheetTelemetry</a></span> 
+
+</dt>
+<dd>
+  Host-owned diagnostics and optional W3C trace context.
+</dd>
+
+          <dt id="PaymentSheetTelemetryEvent">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetTelemetryEvent-class.html">PaymentSheetTelemetryEvent</a></span> 
+
+</dt>
+<dd>
+  Privacy-safe diagnostic metadata from one payment-sheet presentation.
+</dd>
+
+      </dl>
+    </section>
+
+    <section class="summary offset-anchor" id="enums">
+      <h2>Enums</h2>
+      <dl>
+          <dt id="CheckoutActionType">
+  <span class="name "><a href="../inttegro_flutter/CheckoutActionType.html">CheckoutActionType</a></span> 
+
+</dt>
+<dd>
+  Additional customer action required before Checkout can complete.
+</dd>
+
+          <dt id="CheckoutOrderStatus">
+  <span class="name "><a href="../inttegro_flutter/CheckoutOrderStatus.html">CheckoutOrderStatus</a></span> 
+
+</dt>
+<dd>
+  Order states exposed by the Checkout lifecycle.
+</dd>
+
+          <dt id="PaymentSheetEventType">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetEventType.html">PaymentSheetEventType</a></span> 
+
+</dt>
+<dd>
+  Application-facing payment-sheet lifecycle transitions.
+</dd>
+
+          <dt id="PaymentSheetTelemetryEventName">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetTelemetryEventName.html">PaymentSheetTelemetryEventName</a></span> 
+
+</dt>
+<dd>
+  Stable wire names emitted by the native SDK diagnostic stream.
+</dd>
+
+          <dt id="PaymentSheetTelemetryOperation">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetTelemetryOperation.html">PaymentSheetTelemetryOperation</a></span> 
+
+</dt>
+<dd>
+  Checkout operations that may appear in diagnostic events.
+</dd>
+
+          <dt id="PaymentSheetTheme">
+  <span class="name "><a href="../inttegro_flutter/PaymentSheetTheme.html">PaymentSheetTheme</a></span> 
+
+</dt>
+<dd>
+  Restrained visual overrides applied to the native payment sheet.
+</dd>
+
+      </dl>
+    </section>
+
+
+
+
+
+
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">inttegro_flutter</a></li>
+    <li class="self-crumb">inttegro_flutter.dart</li>
+</ol>
+
+    <h5><span class="package-name">inttegro_flutter</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Topics</li>
+        <li><a href="../topics/get-started-topic.html">Get&nbsp;started</a></li>
+        <li><a href="../topics/lifecycle-topic.html">Payment&nbsp;lifecycle</a></li>
+        <li><a href="../topics/observability-topic.html">Observability</a></li>
+      <li class="section-title">Libraries</li>
+      <li><a href="../inttegro_flutter/">inttegro_flutter</a></li>
+      <li class="section-subtitle">Get started</li>
+        <li class="section-subitem"><a href="../payment_sheet/">payment_sheet</a></li>
+      <li class="section-subtitle">Payment lifecycle</li>
+        <li class="section-subitem"><a href="../events/">events</a></li>
+      <li class="section-subtitle">Observability</li>
+        <li class="section-subitem"><a href="../telemetry/">telemetry</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+    <h5>inttegro_flutter library</h5>
+  </div><!--/sidebar-offcanvas-right-->
+</main>
+<footer>
+  <span class="no-break">
+    inttegro_flutter
+      0.5.2
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

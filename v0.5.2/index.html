@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="inttegro_flutter API docs, for the Dart programming language.">
+  <title>inttegro_flutter - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://flutter.inttegro.dev/">inttegro_flutter package</a></li>
+  </ol>
+  <div class="self-name">inttegro_flutter</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <h1 id="inttegro-flutter">Inttegro Flutter</h1>
+<p><a href="https://flutter.inttegro.dev/v0.5.2/">API reference</a> ·
+<a href="https://studio.inttegro.com/sdks/flutter">Studio guide</a></p>
+<p>Typed Flutter facade for Inttegro's native payment sheet. The current collection
+surface supports mobile money; card, Apple Pay, and Google Pay are not exposed
+in this version.</p>
+<pre class="language-dart"><code class="language-dart">import 'package:inttegro_flutter/events.dart';
+import 'package:inttegro_flutter/payment_sheet.dart';
+
+// Your backend must create and finalize the Order before this handoff.
+final checkout = await merchantBackend.createCheckoutOrder(cart);
+final orderId = checkout.orderId;
+
+final lifecycleSubscription = Inttegro.instance.paymentSheetEvents.listen(
+  (event) {
+    switch (event.type) {
+      case PaymentSheetEventType.presented:
+        onPaymentFlowStarted();
+      case PaymentSheetEventType.paymentAttemptStarted:
+        onPaymentAttemptStarted();
+      case PaymentSheetEventType.paymentAttemptFailed:
+        // Recoverable: the customer can retry without leaving the native sheet.
+        onPaymentAttemptFailed(
+          order: event.order!,
+          failure: event.failure!,
+        );
+      case PaymentSheetEventType.paymentActionRequired:
+        onPaymentActionRequired(
+          order: event.order!,
+          action: event.action!,
+        );
+      default:
+        break;
+    }
+  },
+);
+
+await Inttegro.instance.initializePaymentSheet(
+  PaymentSheetConfiguration(
+    orderId: orderId,
+    title: 'Complete contribution',
+    returnUrl: Uri.parse('merchant-app://inttegro-return'),
+    appearance: const PaymentSheetAppearance(
+      theme: PaymentSheetTheme.system,
+    ),
+    telemetry: activeTraceContext, // Optional traceparent and tracestate.
+    features: const PaymentSheetFeatures(
+      showLineItems: true,
+      showInvoiceDownload: true,
+      showReceiptDownload: true,
+      allowPaymentMethodChange: false,
+    ),
+  ),
+);
+
+try {
+  final result = await Inttegro.instance.presentPaymentSheet();
+
+  switch (result) {
+    case PaymentSheetCompleted(:final order):
+      onPaymentCompleted(order: order);
+      await merchantBackend.verifyOrderPayment(order.id);
+    case PaymentSheetCanceled(:final order):
+      onPaymentCanceled();
+      if (order != null) preserveCheckoutContext(order.id);
+    case PaymentSheetFailed(:final failure):
+      onPaymentSheetFailed(
+        code: failure.code,
+        message: failure.message,
+      );
+  }
+} finally {
+  await lifecycleSubscription.cancel();
+}
+</code></pre>
+<p>For a Buy link, initialize with the client-safe Purchase Intent instead of a
+finalized Order:</p>
+<pre class="language-dart"><code class="language-dart">await Inttegro.instance.initializePaymentSheet(
+  PaymentSheetConfiguration(purchaseIntentId: buyLink.purchaseIntentId),
+);
+</code></pre>
+<p>The native sheet retrieves the Buy-link choices and lets the payer choose the
+product variant, quantity, customer details, and—when supported—amount. It
+creates the finalized Order and starts payment together only when the payer
+presses Pay. Supply
+exactly one of <code>orderId</code> or <code>purchaseIntentId</code>.</p>
+<p>The umbrella <code>inttegro_flutter.dart</code> library remains supported. Applications
+that prefer responsibility-based API pages can use focused libraries:</p>
+<pre class="language-dart"><code class="language-dart">import 'package:inttegro_flutter/payment_sheet.dart';
+import 'package:inttegro_flutter/events.dart';
+import 'package:inttegro_flutter/telemetry.dart';
+</code></pre>
+<p>These are libraries in one pub package, not separate native implementations.
+They stay on one version and delegate to the same iOS or Android state machine.</p>
+<p>All feature flags are optional. Line items and post-payment downloads are off
+by default; changing an attached payment method remains allowed by default.
+When line items are enabled, the Order summary still starts collapsed. Opening
+it expands the native sheet as the items are revealed.
+Invoice and receipt actions appear only when Checkout returns the corresponding
+document link after payment succeeds. Disabling payment-method changes does not
+block collection when the Order has no attached method.</p>
+<p>Finalizing an Order seals its amount and activates checkout; it does not mean
+the payment has completed. Treat <code>PaymentSheetCompleted</code> as immediate client UI
+state. Verify the owner-scoped Order from your backend before fulfillment.</p>
+<p>The method channel maps directly to the shared native iOS and Android payment
+artifacts. Those native implementations own presentation, accessibility,
+authentication, payment collection, and lifecycle state; Dart only validates
+the public input and decodes the result.</p>
+<p><code>paymentSheetEvents</code> provides typed application-facing lifecycle events. A
+failed attempt is recoverable and does not resolve the presentation; the
+terminal <code>PaymentSheetResult</code> drives completion, cancellation, and sheet-failure
+behavior.</p>
+<p>Use <code>paymentSheetTelemetryEvents</code> separately for ordered Checkout network
+diagnostics. Inttegro does not install or own an exporter: the host decides
+whether to translate them into spans, logs, or other signals. Events contain
+bounded status and correlation metadata, never Order or Payment IDs, customer
+or payer data, payment-method details, request or response bodies, redirect
+URLs, or raw error messages. <code>flowId</code> and <code>requestId</code> should not be used as
+metric labels. Subscribe before presenting the sheet so the first event is not
+missed.</p>
+<p>The native transport retries an idempotent Checkout mutation once when the
+server supplies a valid <code>Retry-After</code> delay. Transport-only request identifiers
+and retry timing remain in <code>paymentSheetTelemetryEvents</code>; public lifecycle
+failures carry only a stable code, safe message, and recoverability flag.</p>
+<p>The package registers an Android and iOS plugin for each Flutter engine. The
+plugins keep presentation state isolated per engine and delegate to the same
+native <code>Inttegro</code> artifacts used by the React Native SDK. CocoaPods links the
+iOS artifact through <code>inttegro_flutter.podspec</code>, while Gradle resolves
+<code>com.inttegro:inttegro-android:0.4.3</code>.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Flutter 3.44 or later and Dart 3.12 or later</li>
+<li>iOS 16 or later</li>
+<li>Android API 26 or later</li>
+</ul>
+<p>Add the package, fetch dependencies, and rebuild the application so Flutter can
+register the native plugin. Hot reload alone cannot add a newly installed
+native plugin to a running application.</p>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="inttegro_flutter">
+  <span class="name"><a href="inttegro_flutter/">inttegro_flutter</a></span> 
+
+</dt>
+<dd>Inttegro's Flutter SDK for native Checkout payment collection.
+</dd>
+
+          <h3>Get started</h3>
+          <p>Get started with Checkout</p>
+            <dt id="payment_sheet">
+  <span class="name"><a href="payment_sheet/">payment_sheet</a></span> 
+    <span class="category get-started cp-0 linked" title="This is part of the Get started topic."><a href="topics/get-started-topic.html">Get&nbsp;started</a></span>
+
+</dt>
+<dd>Configure and present Inttegro's native payment sheet from Flutter.
+</dd>
+
+          <h3>Payment lifecycle</h3>
+          <p>Payment lifecycle</p>
+            <dt id="events">
+  <span class="name"><a href="events/">events</a></span> 
+    <span class="category payment-lifecycle cp-1 linked" title="This is part of the Payment lifecycle topic."><a href="topics/lifecycle-topic.html">Payment&nbsp;lifecycle</a></span>
+
+</dt>
+<dd>Application-facing lifecycle events from Inttegro's native payment sheet.
+</dd>
+
+          <h3>Observability</h3>
+          <p>Observability</p>
+            <dt id="telemetry">
+  <span class="name"><a href="telemetry/">telemetry</a></span> 
+    <span class="category observability cp-2 linked" title="This is part of the Observability topic."><a href="topics/observability-topic.html">Observability</a></span>
+
+</dt>
+<dd>Privacy-safe diagnostics from Inttegro's native payment flow.
+</dd>
+
+        </dl>
+      </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="https://flutter.inttegro.dev/">inttegro_flutter package</a></li>
+</ol>
+
+    <h5 class="hidden-xs"><span class="package-name">inttegro_flutter</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Topics</li>
+        <li><a href="topics/get-started-topic.html">Get&nbsp;started</a></li>
+        <li><a href="topics/lifecycle-topic.html">Payment&nbsp;lifecycle</a></li>
+        <li><a href="topics/observability-topic.html">Observability</a></li>
+      <li class="section-title">Libraries</li>
+      <li><a href="inttegro_flutter/">inttegro_flutter</a></li>
+      <li class="section-subtitle">Get started</li>
+        <li class="section-subitem"><a href="payment_sheet/">payment_sheet</a></li>
+      <li class="section-subtitle">Payment lifecycle</li>
+        <li class="section-subitem"><a href="events/">events</a></li>
+      <li class="section-subtitle">Observability</li>
+        <li class="section-subitem"><a href="telemetry/">telemetry</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+</main>
+<footer>
+  <span class="no-break">
+    inttegro_flutter
+      0.5.2
+  </span>
+  
+</footer>
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
