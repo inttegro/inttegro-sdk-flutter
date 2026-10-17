@@ -1,9 +1,19 @@
+/// Color scheme used by the native payment sheet.
+enum PaymentSheetTheme {
+  /// Always use the light color scheme.
+  light,
+
+  /// Always use the dark color scheme.
+  dark,
+
+  /// Follow the device color-scheme preference.
+  system,
+}
+
 /// Restrained visual overrides applied to the native payment sheet.
 ///
 /// Omit values to inherit platform and application defaults. Inttegro retains
 /// native controls, layout, accessibility behavior, and payment-state semantics.
-enum PaymentSheetTheme { light, dark, system }
-
 final class PaymentSheetAppearance {
   /// Creates optional native appearance overrides.
   const PaymentSheetAppearance({
